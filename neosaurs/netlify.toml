@@ -1,0 +1,173 @@
+headersOrigin = "config"
+redirectsOrigin = "config"
+plugins = []
+
+[build]
+publish = "."
+publishOrigin = "config"
+
+  [build.environment]
+
+  [build.processing]
+
+    [build.processing.css]
+
+    [build.processing.html]
+
+    [build.processing.images]
+
+    [build.processing.js]
+
+  [build.services]
+
+[[edge_functions]]
+function = "protect-source"
+path = "/*.js"
+
+[[edge_functions]]
+function = "protect-source"
+path = "/style.css"
+
+[[edge_functions]]
+function = "protect-source"
+path = "/"
+
+[[edge_functions]]
+function = "protect-source"
+path = "/index.html"
+
+[functions]
+
+  [functions."*"]
+
+[[headers]]
+for = "/*"
+
+  [headers.values]
+  X-Frame-Options = "SAMEORIGIN"
+  X-Content-Type-Options = "nosniff"
+  Referrer-Policy = "same-origin"
+  Permissions-Policy = "accelerometer=*, camera=*, microphone=*, geolocation=*, vr=*, xr-spatial-tracking=*"
+  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://upload.wikimedia.org https://svs.gsfc.nasa.gov https://eoimages.gsfc.nasa.gov; media-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://api.mymemory.translated.net https://upload.wikimedia.org https://svs.gsfc.nasa.gov https://eoimages.gsfc.nasa.gov; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'none'"
+  X-Download-Options = "noopen"
+  Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+  Pragma = "no-cache"
+  X-Robots-Tag = "noarchive, nosnippet"
+
+[[headers]]
+for = "/manifest.json"
+
+  [headers.values]
+  Content-Type = "application/manifest+json"
+  Cache-Control = "public, max-age=86400"
+
+[[headers]]
+for = "/sw.js"
+
+  [headers.values]
+  Content-Type = "application/javascript"
+  Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+for = "/*.mp3"
+
+  [headers.values]
+  Content-Type = "audio/mpeg"
+  Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+for = "/*.js"
+
+  [headers.values]
+  Content-Type = "application/javascript; charset=utf-8"
+  Cache-Control = "no-store, no-cache, must-revalidate"
+  X-Content-Type-Options = "nosniff"
+  X-Download-Options = "noopen"
+  X-Robots-Tag = "noarchive, nosnippet, noindex"
+  Content-Disposition = "inline"
+
+[[headers]]
+for = "/*.css"
+
+  [headers.values]
+  Content-Type = "text/css; charset=utf-8"
+  Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+for = "/index.html"
+
+  [headers.values]
+  Cache-Control = "public, max-age=0, must-revalidate"
+  X-Robots-Tag = "noarchive"
+
+[[headers]]
+for = "/*.png"
+
+  [headers.values]
+  Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+for = "/*.jpg"
+
+  [headers.values]
+  Cache-Control = "public, max-age=31536000"
+
+[[redirects]]
+from = "/game.js.backup"
+to = "/index.html"
+status = 301
+force = false
+
+  [redirects.query]
+
+  [redirects.conditions]
+
+  [redirects.headers]
+
+[[redirects]]
+from = "/test.html"
+to = "/index.html"
+status = 301
+force = false
+
+  [redirects.query]
+
+  [redirects.conditions]
+
+  [redirects.headers]
+
+[[redirects]]
+from = "/Neosaurs.html"
+to = "/index.html"
+status = 301
+force = false
+
+  [redirects.query]
+
+  [redirects.conditions]
+
+  [redirects.headers]
+
+[[redirects]]
+from = "/README.md"
+to = "/index.html"
+status = 301
+force = false
+
+  [redirects.query]
+
+  [redirects.conditions]
+
+  [redirects.headers]
+
+[[redirects]]
+from = "/DEPLOY.md"
+to = "/index.html"
+status = 301
+force = false
+
+  [redirects.query]
+
+  [redirects.conditions]
+
+  [redirects.headers]

@@ -1,0 +1,3064 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neosaurs</title>
+    <link rel="icon" type="image/svg+xml" href="appicon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="appicon.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="appicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="appicon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Neosaurs">
+    <meta name="theme-color" content="#0a0a1e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="supported-color-schemes" content="dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+    @media(max-width:768px){.intro-overlay{align-items:flex-start!important;padding-top:calc(env(safe-area-inset-top,0px) + 15vh)!important}.intro-notif{transform:translateY(-60px)!important}}
+    @media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+      html { background: #0a0a0a !important; overflow: hidden !important; }
+      body {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        overflow: hidden !important;
+      }
+      /* Intro notification card: center horizontally on PC */
+      .intro-overlay {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        flex-direction: column !important;
+        text-align: center !important;
+      }
+      .intro-overlay .intro-content,
+      .intro-overlay .intro-notif,
+      .intro-content.intro-notif {
+        position: relative !important;
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        transform-origin: center center !important;
+      }
+      .intro-notif { text-align: center !important; }
+      .intro-notif-header { justify-content: center !important; }
+    }
+    /* === MINIMAL SAFE FIXES === */
+    /* Kill dark overlay on intro/celestial/world-map (menus only — NO blur during play) */
+    .intro-overlay, .celestial-transit-overlay, .world-map-overlay,
+    .victory-overlay, .lost-overlay {
+      background: rgba(10,10,20,0.35) !important;
+      backdrop-filter: blur(16px) saturate(150%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+    }
+    /* Gameplay HUD: NO blur, NO dark bg during play */
+    #gameUI, #gameUI .hud, #gameUI .lives-bar {
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    #gameUI .hud { text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+    #gameUI .lives-bar { text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+    /* Welcome buttons: ALWAYS clickable from the moment they render */
+    #welcomeScreen { pointer-events: auto !important; z-index: 5000 !important; }
+    #welcomeScreen.welcome-hidden { display: none !important; pointer-events: none !important; }
+    #welcomeScreen button:not(#welcomeShareBtn):not(#welcomeSettingsBtn),
+    #welcomeStartButton, #welcomeCreateBtn, #welcomeMapBtn {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      position: relative !important;
+      z-index: 2 !important;
+    }
+    /* Share/Settings stay fixed — don't force relative positioning on them */
+    #welcomeShareBtn, #welcomeSettingsBtn {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    /* Neobench buttons: always clickable while overlay is visible */
+    #neobenchOverlay.nb-visible #nbRunBtn,
+    #neobenchOverlay.nb-visible #nbDeepBtn,
+    #neobenchOverlay.nb-visible #nbBackBtn,
+    #neobenchOverlay.nb-visible #nbHelpBtn,
+    #neobenchOverlay.nb-visible #nbCloseResultBtn,
+    #neobenchOverlay.nb-visible #nbHistBtn {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      position: relative !important;
+      z-index: 3 !important;
+    }
+    /* Preloader and iframe intro overlay: never block clicks */
+    .preloader-overlay, #preloaderScreen { pointer-events: none !important; }
+    #iframeIntroOverlay:not(.ifr-active) { pointer-events: none !important; display: none !important; }
+    /* Gameplay canvas: brighten textures/background for better visibility */
+    canvas { filter: brightness(1.15) contrast(1.04) saturate(1.06) !important; }
+    body.night-mode canvas, body.moon-mode canvas { filter: brightness(1.25) contrast(1.05) saturate(1.08) !important; }
+    body.retro-8bit canvas { filter: brightness(1.12) !important; }
+    /* Share (left) / Settings (right) buttons: symmetric, inside viewport */
+    .share-arrow-btn,
+    .settings-arrow-btn,
+    #welcomeShareBtn.share-arrow-btn,
+    #welcomeSettingsBtn.settings-arrow-btn {
+      position: fixed !important;
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 50% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
+      top: auto !important;
+      z-index: 5001 !important;
+      transform: none !important;
+      animation: none !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid rgba(255,255,255,0.18) !important;
+      color: #fff !important;
+      font-size: 1.5rem !important;
+      font-weight: 300 !important;
+      line-height: 1 !important;
+      opacity: 1 !important;
+      cursor: pointer !important;
+      box-sizing: border-box !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    .share-arrow-btn,
+    #welcomeShareBtn.share-arrow-btn {
+      left: calc(env(safe-area-inset-left, 0px) + 24px) !important;
+      right: auto !important;
+    }
+    .settings-arrow-btn,
+    #welcomeSettingsBtn.settings-arrow-btn {
+      right: calc(env(safe-area-inset-right, 0px) + 24px) !important;
+      left: auto !important;
+    }
+    .share-arrow-btn img {
+      width: auto !important;
+      height: 22px !important;
+      max-width: 22px !important;
+      display: block !important;
+      object-fit: contain !important;
+      filter: brightness(10) !important;
+      vertical-align: middle !important;
+    }
+    @media (min-width: 769px) {
+      .share-arrow-btn, .settings-arrow-btn {
+        width: 52px !important;
+        height: 52px !important;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 32px) !important;
+      }
+      .share-arrow-btn {
+        left: calc(env(safe-area-inset-left, 0px) + 32px) !important;
+      }
+      .settings-arrow-btn {
+        right: calc(env(safe-area-inset-right, 0px) + 32px) !important;
+      }
+      .share-arrow-btn img { height: 24px !important; max-width: 24px !important; }
+    }
+    /* Hide these buttons when not on welcome screen (e.g., during play) */
+    body.in-game .share-arrow-btn,
+    body.in-game .settings-arrow-btn {
+      display: none !important;
+    }
+    /* === NO BLUR DURING PLAY === */
+    body.in-game *,
+    body.in-game *::before,
+    body.in-game *::after {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    body.in-game canvas { filter: brightness(1.18) contrast(1.04) saturate(1.08) !important; }
+    body.in-game.night-mode canvas, body.in-game.moon-mode canvas { filter: brightness(1.28) contrast(1.05) saturate(1.1) !important; }
+    </style>
+    <script>
+    // PC: fix 3D aspect by adjusting camera FOV to preserve mobile's horizontal FOV.
+    // NO letterboxing (no black bars). Canvas fills full viewport natively.
+    // Camera.aspect always matches real viewport; vertical FOV is reduced on wide
+    // screens so the horizontal world shown matches portrait mode.
+    !function(){
+      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+      var mq = window.matchMedia && window.matchMedia('(min-width:769px) and (hover:hover) and (pointer:fine)');
+      var isPC = mq && mq.matches;
+      if(!isPC || isMobile) return;
+
+      // Mobile base: vFOV 75° at 9:16 aspect. Preserve horizontal FOV on wider aspects.
+      var MOBILE_VFOV = 75;
+      var MOBILE_ASPECT = 9 / 16;
+
+      function targetVFov(){
+        var aspect = window.innerWidth / window.innerHeight;
+        if(aspect <= MOBILE_ASPECT) return MOBILE_VFOV; // taller than mobile — keep native
+        // hFOV = 2*atan(tan(vFOV/2) * aspect). Keep hFOV = mobile's hFOV.
+        var hFovRad = 2 * Math.atan(Math.tan(MOBILE_VFOV * Math.PI / 360) * MOBILE_ASPECT);
+        var newVFovRad = 2 * Math.atan(Math.tan(hFovRad / 2) / aspect);
+        return newVFovRad * 180 / Math.PI;
+      }
+
+      var _debounce = null;
+      function applyCameraFov(){
+        try{
+          if(window.camera && window.camera.isPerspectiveCamera){
+            var f = targetVFov();
+            if(Math.abs((window.camera.fov || 0) - f) > 0.1){
+              window.camera.fov = f;
+              window.camera.aspect = window.innerWidth / window.innerHeight;
+              if(window.camera.updateProjectionMatrix) window.camera.updateProjectionMatrix();
+            }
+          }
+        }catch(e){}
+      }
+
+      // Wait for camera to be ready, then apply and listen
+      var _ready = setInterval(function(){
+        if(typeof THREE === 'undefined') return;
+        if(!window.camera || !window.camera.isPerspectiveCamera) return;
+        clearInterval(_ready);
+        applyCameraFov();
+
+        function onResize(){
+          // Debounce to avoid flicker on rapid resize
+          if(_debounce) clearTimeout(_debounce);
+          _debounce = setTimeout(applyCameraFov, 60);
+        }
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+        if(window.visualViewport){ window.visualViewport.addEventListener('resize', onResize); }
+      }, 200);
+    }();
+    </script>
+    <script>!function(){if(window.navigator.standalone||window.matchMedia&&(window.matchMedia("(display-mode: standalone)").matches||window.matchMedia("(display-mode: fullscreen)").matches)){var t=document.createElement("style");t.textContent=["html{background:#0a0a0a!important;overflow:hidden!important;position:fixed!important;inset:0!important;width:100%!important;height:100%!important}","body{transform-origin:center top!important;overflow:hidden!important}","body.loaded{transform:scale(1.05)!important}","#editorToolbar{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)!important;z-index:99999!important}","#editorTopBar{z-index:99999!important}","#editorToolbarExpandBtn{z-index:99999!important}",".menu{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)!important}",".victory-content,.lost-content{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)!important}",".victory-overlay,.lost-overlay{padding-bottom:env(safe-area-inset-bottom,0px)!important}","#gameUI .hud{top:calc(env(safe-area-inset-top,0px) + 10px)!important}","#gameUI .lives-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)!important;top:auto!important}"].join(""),document.head.appendChild(t)}}();</script>
+    <script data-neo-patch="haptic-polyfill">
+    // === Global haptic() polyfill — defined BEFORE game code loads ===
+    // Provides window.haptic(), window.haptic.confirm(), .error(), .warning(), .light(), .heavy()
+    // Bridges to native iosHaptic (WKWebView/Capacitor) when present, else uses navigator.vibrate.
+    // Safe on iOS 16+ / Mac Ventura / all desktop browsers.
+    !function(){
+      function _vibe(pattern){
+        try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+      }
+      function _bridge(name, fallbackPattern){
+        try{
+          var h = window.iosHaptic;
+          if(h && typeof h[name] === 'function'){ h[name](); return true; }
+        }catch(e){}
+        _vibe(fallbackPattern);
+        return false;
+      }
+      var haptic = function(){ _bridge('impact', 10); };
+      haptic.light    = function(){ _bridge('light',   6);  };
+      haptic.medium   = function(){ _bridge('medium', 10);  };
+      haptic.heavy    = function(){ _bridge('heavy',  14);  };
+      haptic.confirm  = function(){ _bridge('confirm',[10,20,10]); };
+      haptic.success  = function(){ _bridge('success',[8,16,8]);   };
+      haptic.warning  = function(){ _bridge('warning',[12,30,12]); };
+      haptic.error    = function(){ _bridge('error',  [20,40,20]); };
+      haptic.selection= function(){ _bridge('selection', 4); };
+      // Only set if not already defined by a native bridge (don't clobber)
+      if(!window.haptic) window.haptic = haptic;
+      // Also keep a global reference the game can test against
+      window._neoHaptic = haptic;
+    }();
+    </script>
+    <script>window._neoToken=function(){for(var e="neo"+Math.floor(Date.now()/3e4)+"saur",o=0,n=0;n<e.length;n++)o=(o<<5)-o+e.charCodeAt(n)|0;return"n"+Math.abs(o).toString(36)},function(){window._earlyGameCode=null,window._earlyGameError=!1;var e="_033b3a75e3568611.js?v="+Date.now(),o=new XMLHttpRequest;o.open("GET",e,!0),o.setRequestHeader("X-Neo-Auth",window._neoToken()),o.onload=function(){if(200===o.status&&o.responseText&&o.responseText.length>100){window._earlyGameCode=o.responseText;try{Object.defineProperty(o,"responseText",{value:"",writable:!1})}catch(e){}try{Object.defineProperty(o,"response",{value:"",writable:!1})}catch(e){}}else window._earlyGameError=!0},o.onerror=function(){window._earlyGameError=!0},o.send()}();</script>
+</head>
+<body>
+    <!-- DASHUI 帰還ボタン(from=dashui または back=1 の時のみ表示) -->
+    <style>
+    #dashuiBackBtn{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);left:12px;z-index:999999;
+      padding:8px 14px;border-radius:88px;
+      background:rgba(20,20,25,.72);backdrop-filter:blur(14px) saturate(1.4);
+      -webkit-backdrop-filter:blur(14px) saturate(1.4);
+      color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+      font-size:12px;letter-spacing:.5px;border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 4px 14px rgba(0,0,0,.4), inset 1px -.5px .3px rgba(255,255,255,.4);
+      cursor:pointer;display:none;transition:transform .2s, background .2s;user-select:none;-webkit-user-select:none}
+    #dashuiBackBtn.show{display:flex;align-items:center;gap:4px}
+    #dashuiBackBtn:active{transform:scale(.94);background:rgba(40,40,50,.9)}
+    </style>
+    <div id="dashuiBackBtn" onclick="location.href='../index.html'">← DASHUI</div>
+    <script data-neo-patch="dashui-bridge">
+    (function(){
+      console.log('[Neosaurs/DASHUI bridge] init');
+      try{
+        var u=new URL(location.href);
+        var fromDashui=(u.searchParams.get('from')==='dashui' || u.searchParams.get('back')==='1' || document.referrer.indexOf('dashui')>=0);
+        if(fromDashui){
+          var btn=document.getElementById('dashuiBackBtn');
+          if(btn){btn.classList.add('show');console.log('[bridge] back button visible')}
+        }
+        // DASHUI 経由ならいつでも Create ボタンを unlock 状態に保つ
+        if(fromDashui){
+          var keepUnlocked=function(){
+            var cb=document.getElementById('welcomeCreateBtn');
+            if(cb){
+              try{cb.classList.remove('locked');cb.classList.remove('lock')}catch(e){}
+              // MutationObserver で再度 locked が付与されたら即時除去
+              try{
+                new MutationObserver(function(muts){
+                  muts.forEach(function(m){
+                    if(m.attributeName==='class' && cb.classList.contains('locked')){
+                      cb.classList.remove('locked');
+                    }
+                  });
+                }).observe(cb,{attributes:true,attributeFilter:['class']});
+              }catch(e){}
+              return true;
+            }
+            return false;
+          };
+          if(!keepUnlocked()){
+            var _kt=0, _ki=setInterval(function(){if(keepUnlocked()||++_kt>200)clearInterval(_ki)},100);
+          }
+        }
+        // create=1 なら Welcome 可視後に Create ボタン強制アンロック→タップ
+        if(u.searchParams.get('create')==='1'){
+          console.log('[bridge] create=1 — will force-unlock + tap #welcomeCreateBtn');
+          var tries=0, tapped=false;
+          var isVisible=function(el){
+            if(!el)return false;
+            var r=el.getBoundingClientRect();
+            if(r.width<1||r.height<1)return false;
+            var st=getComputedStyle(el);
+            return st.display!=='none' && st.visibility!=='hidden' && parseFloat(st.opacity||'1')>.5;
+          };
+          var tap=function(){
+            if(tapped)return;
+            var cb=document.getElementById('welcomeCreateBtn');
+            if(isVisible(cb)){
+              // locked class を強制除去(Neosaurs の卵 30 個制限をバイパス)
+              try{cb.classList.remove('locked');cb.classList.remove('lock')}catch(e){}
+              // DASHUI から来たマークで特殊解放フラグを立てる
+              try{window.__dashuiUnlockCreate=true;localStorage.setItem('neo_createUnlock','1')}catch(e){}
+              tapped=true;
+              // 発火(複数イベント)
+              try{
+                var rect=cb.getBoundingClientRect();
+                var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+                // Pointer + Mouse + Touch をフル発火(Neosaurs が拾う系統を全部)
+                ['pointerdown','mousedown','touchstart'].forEach(function(type){
+                  try{
+                    if(type==='touchstart'){
+                      var t=new Touch({identifier:1,target:cb,clientX:cx,clientY:cy,pageX:cx,pageY:cy});
+                      cb.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,cancelable:true,touches:[t],targetTouches:[t],changedTouches:[t]}));
+                    }else{
+                      cb.dispatchEvent(new (type.startsWith('pointer')?PointerEvent:MouseEvent)(type,{bubbles:true,cancelable:true,clientX:cx,clientY:cy,button:0,buttons:1}));
+                    }
+                  }catch(e){}
+                });
+                setTimeout(function(){
+                  try{cb.click()}catch(e){}
+                  ['pointerup','mouseup','click','touchend'].forEach(function(type){
+                    try{
+                      if(type==='touchend'){
+                        cb.dispatchEvent(new TouchEvent('touchend',{bubbles:true,cancelable:true,changedTouches:[]}));
+                      }else{
+                        cb.dispatchEvent(new (type.startsWith('pointer')?PointerEvent:MouseEvent)(type,{bubbles:true,cancelable:true,clientX:cx,clientY:cy,button:0}));
+                      }
+                    }catch(e){}
+                  });
+                },50);
+              }catch(e){console.warn('[bridge] synthetic click failed',e)}
+              return;
+            }
+            if(++tries<140)setTimeout(tap,120);
+          };
+          setTimeout(tap,700);
+        }
+      }catch(e){console.warn('[bridge] init error',e)}
+    })();
+    </script>
+    <script>!function(){var t=location.hostname;if(!("https:"===location.protocol&&t.endsWith(".netlify.app")||"localhost"===t||"127.0.0.1"===t))throw document.documentElement.innerHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#000;color:#333;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;"><p></p></body></html>',new Error("")}();</script>
+    <noscript>
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a1e;display:flex;justify-content:center;align-items:center;z-index:999999;">
+            <p style="color:#fff;font-size:1.2rem;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:2rem;">JavaScriptを有効にしてください<br><span style="color:rgba(255,255,255,0.4);font-size:0.85rem;">Please enable JavaScript to play this game.</span></p>
+        </div>
+    </noscript>
+    <div id="preloaderScreen" class="preloader-overlay" style="display:flex;">
+        <div class="preloader-content">
+            <div id="preloaderStatus" class="preloader-status sf-font" style="opacity:1;transform:none;">読み込み中...</div>
+            <div id="preloaderBar" class="preloader-bar-container" style="opacity:1;">
+                <div id="preloaderBarFill" class="preloader-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+    <div id="iframeIntroOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:10001;overflow:hidden;background:#0b0b28;">
+        <iframe id="iframeIntro" allow="autoplay" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;transform:scale(1);transform-origin:center center;transition:none;will-change:transform,filter,opacity;"></iframe>
+    </div>
+    <div id="welcomeScreen" class="liquid-glass menu" style="display: none;">
+        <div id="neoClock" class="welcome-slidable" style="font-family:'SF Pro Display','SF Pro',-apple-system,sans-serif;font-weight:50;font-size:5rem;color:#fff;letter-spacing:-0.03em;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:1.5rem;margin-bottom:0.1rem;overflow:hidden;height:5.8rem;display:flex;align-items:center;justify-content:center;transition:transform 0.3s cubic-bezier(.77,0,.18,1);">
+            <span id="neoClockText">9:41</span>
+        </div>
+        <p id="neoClockHint" class="welcome-slidable" style="font-family:'SF Pro Display',-apple-system,sans-serif;font-weight:300;font-size:0.7rem;color:rgba(255,255,255,0.35);cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:2rem;letter-spacing:0.03em;"><span id="neoOSLabel">iOS</span> / タップで性能検証</p>
+        <div id="platformInfo" class="platform-badge sf-font" style="display:none;position:absolute;pointer-events:none;"></div>
+        <p id="benchHint" style="display:none;">タップで性能検証</p>
+        <input id="welcomeTitleInput" class="glow-text sf-font welcome-slidable" value="🦕 Neosaurs" maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false" style="background:none;border:none;outline:none;text-align:center;width:90%;-webkit-user-select:text;user-select:text;margin-bottom:0.3rem;margin-top:4rem;">
+        <p id="neoTranslateResult" class="sf-font welcome-slidable" style="font-size:1.7rem;color:rgba(255,255,255,0.7);margin-top:0.8rem;margin-bottom:2.5rem;min-height:2rem;opacity:0;transform:translateY(10px);transition:opacity 0.5s ease,transform 0.5s cubic-bezier(.77,0,.18,1);"></p>
+        <button id="welcomeStartButton" class="liquid-button primary sf-font haptic-btn welcome-slidable" style="margin-bottom:0.5rem;">始める</button>
+        <button id="welcomeCreateBtn" class="liquid-button sf-font haptic-btn welcome-slidable" style="background:linear-gradient(135deg,rgba(255,204,0,0.15),rgba(255,136,0,0.12));font-size:1rem;padding:0.6rem 2rem;margin-top:0.3rem;">作る</button>
+        <button id="welcomeMapBtn" class="liquid-button sf-font haptic-btn welcome-slidable" style="background:rgba(100,150,255,0.1);font-size:0.85rem;padding:0.5rem 1.8rem;margin-top:0.3rem;">WORLD MAP</button>
+        <button id="welcomeShareBtn" class="share-arrow-btn sf-font welcome-slidable" aria-label="share"><img src="share.png" alt="share"></button>
+        <button id="welcomeSettingsBtn" class="settings-arrow-btn sf-font welcome-slidable" aria-label="settings">→</button>
+    </div>
+    <div id="celestialTransit" class="celestial-transit-overlay" style="display: none;">
+        <canvas id="celestialCanvas"></canvas>
+        <div id="celestialLabel" class="celestial-label sf-font"></div>
+        <div id="celestialTapHint" class="celestial-tap-hint sf-font">TAP</div>
+    </div>
+    <div id="introScreen" class="intro-overlay" style="display: none;">
+        <div class="intro-content intro-notif liquid-glass">
+            <div class="intro-notif-header">
+                <img src="appicon.png" alt="icon" class="intro-notif-icon">
+                <span class="intro-notif-app sf-font">NEOSAURS</span>
+                <span class="intro-notif-time sf-font">now</span>
+            </div>
+            <h2 id="introText1" class="intro-text sf-font intro-notif-title">卵を取り返そう</h2>
+            <p id="introText2" class="intro-subtext sf-font intro-notif-body">3個集めるとクリア</p>
+            <button id="introStartButton" class="liquid-button primary sf-font haptic-btn intro-notif-btn">スタート</button>
+        </div>
+    </div>
+    <script>!function(){var n=document.querySelector('.intro-notif');n&&n.addEventListener('touchstart',function(){n.classList.remove('notif-shake');void n.offsetWidth;n.classList.add('notif-shake');if(navigator.vibrate)navigator.vibrate(10);},{passive:!0})}();</script>
+    <div id="gameUI" style="display: none;">
+        <div class="hud liquid-glass">
+            <div class="hud-item hud-inline"><span class="hud-label sf-font">スコア</span><span id="score" class="hud-value sf-font">0</span></div>
+            <div class="hud-item hud-inline"><span class="hud-label sf-font">卵</span><span id="eggCount" class="hud-value sf-font">0/3</span></div>
+        </div>
+        <div id="livesBar" class="lives-bar">
+            <span id="lives" class="lives-hearts sf-font">❤️❤️❤️</span>
+        </div>
+        <div id="crosshair"></div>
+        <div id="chargeIndicator" class="charge-bar">
+            <div id="chargeBar"></div>
+        </div>
+        <div id="damageFlash" class="damage-flash"></div>
+        <button id="exitVRButton" class="liquid-button sf-font haptic-btn" style="display: none;">Exit VR</button>
+    </div>
+    <div id="winMenu" class="victory-overlay" style="display: none;">
+        <canvas id="dotsCanvas"></canvas>
+        <div class="victory-content">
+            <h1 class="victory-text sf-font">おめでとう！</h1>
+            <div class="stats liquid-glass" style="display:none;">
+                <p class="sf-font" id="i18n-finalScore" style="display:none;">最終スコア: <span id="finalScore">0</span></p>
+                <p class="sf-font" id="i18n-maxCombo" style="display:none;">最大コンボ: <span id="maxCombo">0</span></p>
+            </div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:0.8rem;margin-top:0.3rem;">
+                <button id="winToTitleBtn" class="liquid-button sf-font haptic-btn" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);font-size:0.9rem;padding:0.5rem 1.5rem;text-transform:none;letter-spacing:normal;"><span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;">←</span> タイトル</button>
+                <button id="restartButton" class="liquid-button primary sf-font haptic-btn">つぎへ</button>
+            </div>
+        </div>
+    </div>
+    <div id="worldMapScreen" class="world-map-overlay" style="display: none;">
+        <canvas id="mapGlobeCanvas"></canvas>
+        <div class="world-map-ui">
+            <h2 class="sf-font world-map-title">🌍 WORLD MAP</h2>
+            <div id="mapCourseList" class="map-course-list"></div>
+            <button id="mapCloseButton" class="liquid-button sf-font haptic-btn">とじる</button>
+        </div>
+    </div>
+    <div id="lostMenu" class="lost-overlay" style="display: none;">
+        <div class="lost-content">
+            <h1 class="lost-text sf-font">負け</h1>
+            <div class="stats liquid-glass">
+                <p class="sf-font">スコア: <span id="lostScore">0</span></p>
+            </div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:0.8rem;margin-top:0.3rem;">
+                <button id="lostToTitleBtn" class="liquid-button sf-font haptic-btn" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);font-size:0.9rem;padding:0.5rem 1.5rem;text-transform:none;letter-spacing:normal;"><span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;">←</span> タイトル</button>
+                <button id="lostRestartButton" class="liquid-button primary sf-font haptic-btn">リトライ</button>
+            </div>
+        </div>
+    </div>
+    <div id="colorPickerOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:99990;justify-content:center;align-items:center;flex-direction:column;">
+        <div id="colorPickerCircle" style="width:140px;height:140px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);display:flex;justify-content:center;align-items:center;transform:scale(0);opacity:0;transition:transform 0.8s cubic-bezier(.77,0,.18,1),opacity 0.7s cubic-bezier(.77,0,.18,1);overflow:hidden;">
+            <input type="color" id="starColorInput" value="#00cc88" style="width:200%;height:200%;border:none;cursor:pointer;-webkit-appearance:none;padding:0;margin:-50%;">
+        </div>
+        <p id="colorPickerLabel" style="color:rgba(255,255,255,0.7);font-size:1rem;font-family:-apple-system,sans-serif;margin-top:1.5rem;opacity:0;transition:opacity 0.5s ease 0.3s;">色を選ぼう</p>
+        <button id="colorPickerStartBtn" style="margin-top:1.5rem;padding:0.7rem 2.5rem;font-size:1.1rem;border-radius:50px;color:#fff;cursor:pointer;font-family:-apple-system,sans-serif;background:rgba(0,255,136,0.3);border:2px solid rgba(0,255,136,0.5);opacity:0;transition:opacity 0.7s cubic-bezier(.77,0,.18,1) 0.5s;-webkit-tap-highlight-color:transparent;">OK</button>
+    </div>
+    <div id="courseEditorScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:#1a1a2e;z-index:99990;">
+        <canvas id="editorCanvas" style="width:100%;height:100%;display:block;touch-action:none;"></canvas>
+        <div id="editorToolbar" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);left:50%;transform:translateX(-50%);background:rgba(120,120,130,0.6);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-radius:28px;border:none;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:99992;max-width:92vw;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">
+            <div class="editor-item" data-type="egg" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🥚</div>
+            <div class="editor-item" data-type="mountain" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🏔️</div>
+            <div class="editor-item" data-type="rock" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🪨</div>
+            <div class="editor-item" data-type="coin" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🪙</div>
+            <div class="editor-item" data-type="cloud" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">☁️</div>
+            <div class="editor-item editor-lockable" data-type="pond" data-unlock-eggs="40" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🌊</div>
+            <div class="editor-item editor-lockable" data-type="sprout" data-unlock-eggs="40" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🌱</div>
+            <div class="editor-item editor-lockable" data-type="heart" data-unlock-eggs="50" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">❤️</div>
+            <div class="editor-item editor-lockable" data-type="poop" data-unlock-eggs="50" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">💩</div>
+            <div class="editor-item editor-lockable" data-type="fan" data-unlock-eggs="65" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🌀</div>
+            <div class="editor-item editor-lockable" data-type="rainbow" data-unlock-eggs="77" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🌈</div>
+            <div class="editor-item editor-lockable" data-type="notify" data-unlock-eggs="100" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🔔</div>
+            <div class="editor-item editor-lockable" data-type="bigegg" data-unlock-eggs="100" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🟡</div>
+            <div style="border-left:1px solid rgba(255,255,255,0.2);height:2rem;margin:0 2px;"></div>
+            <div class="editor-item editor-lockable" data-type="tower" data-unlock-eggs="150" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🗼</div>
+            <div class="editor-item editor-lockable" data-type="block" data-unlock-eggs="125" style="font-size:2rem;cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none;">🧱</div>
+            <button id="editorBlockSettingsBtn" style="font-size:0.7rem;background:rgba(255,150,50,0.2);border:1px solid rgba(255,150,50,0.4);border-radius:10px;padding:3px 8px;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;font-family:-apple-system,sans-serif;">設定</button>
+            <div style="border-left:1px solid rgba(255,255,255,0.2);height:2rem;margin:0 4px;"></div>
+            <div class="editor-item" data-type="eraser" style="font-size:2rem;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:none;">🧹</div>
+            <div style="border-left:1px solid rgba(255,255,255,0.2);height:2rem;margin:0 4px;"></div>
+            <button id="editorExpandBtn" style="font-size:1.3rem;background:linear-gradient(180deg,rgba(80,200,120,0.35) 0%,rgba(40,140,70,0.45) 100%);border:2px solid rgba(80,200,120,0.6);border-radius:14px;padding:6px 14px;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.2);text-shadow:0 1px 2px rgba(0,0,0,0.4);font-weight:700;font-family:-apple-system,sans-serif;transition:transform 0.7s cubic-bezier(.77,0,.18,1),box-shadow 0.5s cubic-bezier(.77,0,.18,1);">＋土地</button>
+        </div>
+        <div id="editorTopBar" style="position:fixed;top:env(safe-area-inset-top,0);left:0;width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 20px;z-index:99992;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button id="editorBackBtn" style="background:rgba(255,255,255,0.08);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:1.8rem;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">←</button>
+                <button id="editorUndoBtn" style="background:rgba(255,255,255,0.08);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:50%;width:42px;height:42px;color:#fff;font-size:1.15rem;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">↩</button>
+                <button id="editorRedoBtn" style="background:rgba(255,255,255,0.08);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:50%;width:42px;height:42px;color:#fff;font-size:1.15rem;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0.4;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">↪</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button id="editorMapBtn" style="background:rgba(100,150,255,0.12);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:88px;padding:8px 16px;color:#fff;font-size:0.9rem;font-family:-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">🗺️ MAP</button>
+                <button id="editorBGMBtn" style="background:rgba(180,100,255,0.12);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:88px;padding:8px 16px;color:#fff;font-size:0.9rem;font-family:-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">♪ BGM</button>
+                <input type="color" id="editorBallColor" value="#ff4444" style="display:none;width:36px;height:36px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;-webkit-appearance:none;cursor:pointer;padding:0;background:none;overflow:hidden;">
+                <button id="editorHapticBtn" style="display:none;background:rgba(255,100,200,0.12);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:88px;padding:6px 12px;color:#fff;font-size:0.75rem;font-family:-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">振動</button>
+                <button id="editorXRBtn" style="display:none;background:rgba(120,80,255,0.15);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:88px;padding:10px 18px;color:#fff;font-size:0.9rem;font-family:-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">🥽 XR</button>
+                <button id="editorPlayBtn" style="background:rgba(0,255,136,0.15);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:none;border-radius:88px;padding:10px 26px;color:#fff;font-size:1rem;font-family:-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 1px -.8px .5px rgb(255 255 255/64%),inset -1.8px 1.5px 1px rgb(255 255 255/55%);">▶ Play</button>
+            </div>
+            <div id="editorEggCount" style="color:rgba(255,255,255,0.7);font-size:0.85rem;font-family:-apple-system,sans-serif;">🥚 ×3</div>
+        </div>
+        <button id="editorToolbarExpandBtn" aria-label="expand">↑</button>
+        <input type="file" id="editorBGMFile" accept="audio/*" style="display:none;">
+    </div>
+    <script>!function(){var e=["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js","https://unpkg.com/three@0.160.0/build/three.min.js","https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"],t=!1;function n(c){if(!t){t=!0;try{new Function(c)()}catch(t2){try{(0,eval)(c)}catch(t3){try{var s=document.createElement("script");s.textContent=c;document.head.appendChild(s)}catch(t4){}}}}}!function r(o){if(!(t||o>=e.length)){try{var i=new XMLHttpRequest;i.open("GET",e[o],!0),i.onload=function(){try{if(200===i.status&&!t){var c=i.responseText;try{Object.defineProperty(i,"responseText",{value:""})}catch(e2){}try{Object.defineProperty(i,"response",{value:""})}catch(e2){}n(c),c=null}else r(o+1)}catch(ex){r(o+1)}},i.onerror=function(){r(o+1)},i.ontimeout=function(){r(o+1)},i.timeout=10000,i.send()}catch(ex){r(o+1)}}}(0),setTimeout(function(){if("undefined"==typeof THREE&&!t){var s=document.createElement("script");s.src=e[0];s.crossOrigin="anonymous";s.onerror=function(){var s2=document.createElement("script");s2.src=e[1];s2.crossOrigin="anonymous";s2.onerror=function(){var s3=document.createElement("script");s3.src=e[2];s3.crossOrigin="anonymous";document.head.appendChild(s3)};document.head.appendChild(s2)};document.head.appendChild(s)}},500)}();</script>
+    <script>!function(){var e=document.createElement("style");e.textContent=["* { -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }","html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; margin: 0; padding: 0; }","canvas { touch-action: none; }","input, textarea { -webkit-user-select: text !important; user-select: text !important; }"].join("\n"),document.head.appendChild(e),document.addEventListener("touchmove",function(e){"CANVAS"===e.target.tagName&&1===e.touches.length||e.target.closest&&e.target.closest(".scrollable")||e.preventDefault()},{passive:!1}),document.addEventListener("touchstart",function(e){"BUTTON"!==e.target.tagName&&"INPUT"!==e.target.tagName&&e.touches.length},{passive:!0});var t=0;document.addEventListener("touchend",function(e){var n=Date.now();n-t<300&&e.preventDefault(),t=n},{passive:!1})}(),function(){var e=navigator.userAgent,t=/iPhone|iPad|iPod|Android/i.test(e)||"MacIntel"===navigator.platform&&navigator.maxTouchPoints>1||"ontouchstart"in window&&navigator.maxTouchPoints>1,n=/Safari\//.test(e)&&!/Chrome\//.test(e)&&!/CriOS/.test(e)&&!/OPR\//.test(e)&&!/Edg\//.test(e);function o(){if(!t&&!(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)){var e=document.getElementById("blockOverlay");e&&e.remove();var n=document.createElement("div");n.id="blockOverlay",n.style.cssText="position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;background:#000;z-index:999999;display:flex;justify-content:center;align-items:center;cursor:pointer;",n.innerHTML='<img src="eee.jpg" style="width:100%;height:100%;object-fit:contain;">',n.addEventListener("click",function(){n.remove()}),document.body.appendChild(n),setTimeout(function(){n.parentNode&&n.remove()},3e3)}}document.addEventListener("keydown",function(e){if((e.metaKey||e.ctrlKey)&&("+"===e.key||"-"===e.key||"="===e.key||"0"===e.key))return e.preventDefault(),e.stopPropagation(),!1},!0),document.addEventListener("wheel",function(e){(e.ctrlKey||e.metaKey)&&e.preventDefault()},{passive:!1}),document.addEventListener("keydown",function(e){if(!window.__neosaurDevMode)return(!e.metaKey&&!e.ctrlKey||"s"!==e.key&&"S"!==e.key)&&(!e.metaKey&&!e.ctrlKey||"u"!==e.key&&"U"!==e.key)?"F12"===e.key||(e.ctrlKey||e.metaKey)&&e.shiftKey&&/^[iIjJcC]$/.test(e.key)||e.metaKey&&e.altKey&&/^[iIuUcCrReE]$/.test(e.key)||e.ctrlKey&&e.shiftKey&&("e"===e.key||"E"===e.key)?(e.preventDefault(),e.stopPropagation(),t||o(),!1):!e.metaKey&&!e.ctrlKey||"p"!==e.key&&"P"!==e.key?void(e.metaKey&&e.shiftKey&&("r"===e.key||"R"===e.key)&&e.altKey):(e.preventDefault(),e.stopPropagation(),t||o(),!1):(e.preventDefault(),e.stopPropagation(),t||o(),!1)},!0),t||setTimeout(function(){setInterval(function(){window.__neosaurDevMode||(window.outerWidth-window.innerWidth>250||window.outerHeight-window.innerHeight>250)&&o()},1500)},3e3),document.addEventListener("contextmenu",function(e){e.preventDefault()}),window.addEventListener("beforeprint",function(e){e.preventDefault()}),document.body.style.webkitUserSelect="none",document.body.style.userSelect="none",document.body.style.webkitTouchCallout="none",document.addEventListener("copy",function(e){e.preventDefault()}),document.addEventListener("paste",function(e){e.preventDefault()}),document.addEventListener("cut",function(e){e.preventDefault()}),document.addEventListener("selectstart",function(e){e.preventDefault()}),document.body.style.overscrollBehavior="none",document.addEventListener("gesturestart",function(e){e.preventDefault()}),document.addEventListener("gesturechange",function(e){e.preventDefault()}),document.addEventListener("gestureend",function(e){e.preventDefault()}),document.addEventListener("touchmove",function(e){e.touches.length>1&&e.preventDefault()},{passive:!1}),document.addEventListener("wheel",function(e){e.target.closest&&e.target.closest("#editorToolbar, #mapCourseList, .map-course-list, #benchHelpArea, #nbHistList")||e.preventDefault()},{passive:!1}),document.addEventListener("keydown",function(e){["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"].includes(e.key)&&!e.target.closest("input,textarea")&&(!window.GameState||window.GameState.gameStarted)}),document.addEventListener("dragstart",function(e){e.preventDefault()}),document.addEventListener("drop",function(e){e.preventDefault()}),document.addEventListener("dragover",function(e){e.preventDefault()});try{var r=window.matchMedia("print");r.addEventListener?r.addEventListener("change",function(e){e.matches&&(document.body.style.display="none",setTimeout(function(){document.body.style.display=""},100))}):r.addListener&&r.addListener(function(){document.body.style.display="none",setTimeout(function(){document.body.style.display=""},100)})}catch(e){}t&&Object.defineProperty(document,"webkitHidden",{get:function(){return!1}}),setTimeout(function(){document.querySelectorAll("script:not([src]):not([data-neo-patch])").forEach(function(e){e.textContent&&e.textContent.length>50&&(e.textContent="")}),document.querySelectorAll("script[src]").forEach(function(e){/cdn\.jsdelivr|unpkg|cdnjs/i.test(e.src)||(e.removeAttribute("src"),e.textContent="")})},3e3);try{if(navigator.clipboard&&navigator.clipboard.writeText,navigator.clipboard){var i=navigator.clipboard.writeText.bind(navigator.clipboard);navigator.clipboard.writeText=function(e){return e&&(e.length>200||/function|var |let |const |document\.|window\.|THREE\./i.test(e))?Promise.resolve():i(e)}}}catch(e){}try{var a=document.execCommand.bind(document);document.execCommand=function(e){if("copy"===e||"cut"===e){var t=window.getSelection();if(t&&t.toString().length>100)return t.removeAllRanges(),!1}return a.apply(document,arguments)}}catch(e){}try{var s=window.getSelection;window.getSelection=function(){var e=s.call(window);if(e&&e.toString().length>300)try{e.removeAllRanges()}catch(e){}return e}}catch(e){}try{new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&e.addedNodes.forEach(function(e){e.tagName&&("SCRIPT"===e.tagName&&e.src&&!/netlify\.app|localhost|cdn\.jsdelivr|unpkg|cdnjs/i.test(e.src)&&e.remove(),e.id&&/firebug|devtools|inspector|__vue|__react/i.test(e.id)&&e.remove(),"IFRAME"===e.tagName&&e.src&&!/netlify\.app|localhost|sonoma-intro|egg-throw/i.test(e.src)&&e.remove())}),"attributes"===e.type&&e.attributeName})}).observe(document.documentElement,{childList:!0,subtree:!0,attributes:!0})}catch(e){}try{Object.defineProperty(document.documentElement,"outerHTML",{get:function(){return"<!DOCTYPE html><html><head></head><body></body></html>"},configurable:!0})}catch(e){}try{Object.defineProperty(document.documentElement,"innerHTML",{get:function(){return"<head></head><body></body>"},configurable:!0})}catch(e){}try{Object.defineProperty(document.head,"innerHTML",{get:function(){return""},configurable:!0})}catch(e){}try{var c=XMLSerializer.prototype.serializeToString;XMLSerializer.prototype.serializeToString=function(e){return e===document||e===document.documentElement||e===document.head||e===document.body?"<!DOCTYPE html><html><head></head><body></body></html>":c.call(this,e)}}catch(e){}try{Document.prototype.cloneNode,Document.prototype.cloneNode=function(e){return document.implementation.createHTMLDocument("")}}catch(e){}try{var l=navigator.sendBeacon;l&&(navigator.sendBeacon=function(e,t){return("string"!=typeof e||!/\.js(\?|$)|style\.css/i.test(e))&&l.apply(this,arguments)})}catch(e){}document.addEventListener("keydown",function(e){if(!window.__neosaurDevMode)return!e.metaKey&&!e.ctrlKey||!e.shiftKey||"s"!==e.key&&"S"!==e.key?e.metaKey&&e.altKey&&("u"===e.key||"U"===e.key)?(e.preventDefault(),e.stopPropagation(),!1):void 0:(e.preventDefault(),e.stopPropagation(),!1)},!0);var d=function(){};console.log=d,console.warn=d,console.error=d,console.info=d,console.debug=d,console.trace=d,console.dir=d,console.dirxml=d,console.table=d,console.group=d,console.groupEnd=d,console.groupCollapsed=d,console.count=d,console.countReset=d,console.time=d,console.timeEnd=d,console.timeLog=d,console.assert=d,console.clear=d,console.profile=d,console.profileEnd=d,function(){var e=!1;function t(){if(!e){e=!0;var t=window.fetch;window.fetch=function(e){var n="string"==typeof e?e:e&&e.url?e.url:"";return/\.js(\?|$)|style\.css|\.html(\?|$)/i.test(n)&&!/cdn\.jsdelivr|unpkg|cdnjs|fonts\.googleapis|fonts\.gstatic/i.test(n)?Promise.resolve(new Response("",{status:403})):t.apply(this,arguments)};var n=XMLHttpRequest.prototype.open,o=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(e,t){return"string"==typeof t&&/\.js(\?|$)|style\.css|\.html(\?|$)/i.test(t)&&!/cdn\.jsdelivr|unpkg|cdnjs/i.test(t)&&(this.__neoBlocked=!0),n.apply(this,arguments)},XMLHttpRequest.prototype.send=function(){if(!this.__neoBlocked)return o.apply(this,arguments);try{Object.defineProperty(this,"responseText",{get:function(){return""}})}catch(e){}try{Object.defineProperty(this,"response",{get:function(){return""}})}catch(e){}try{Object.defineProperty(this,"status",{get:function(){return 403}})}catch(e){}var e=this;setTimeout(function(){e.onload&&e.onload()},0)};var r=URL.createObjectURL;URL.createObjectURL=function(e){return e&&e.type&&/javascript|html|css/i.test(e.type)&&e.size>500?"about:blank":r.apply(this,arguments)};var i=window.open;window.open=function(e){return"string"==typeof e&&/\.js(\?|$)|style\.css|view-source:/i.test(e)?null:i.apply(this,arguments)}}}var n=setInterval(function(){window.__gameReady&&(clearInterval(n),setTimeout(t,2e3))},500);setTimeout(function(){t()},15e3)}(),setTimeout(function(){setInterval(function(){if(!window.__neosaurDevMode){var e=new Image,t=performance.now();Object.defineProperty(e,"id",{get:function(){performance.now()-t>50&&o()}}),e.id}},5e3)},3e3),function(){if(!window.__neosaurDevMode){var e=document.createElement("div");Object.defineProperty(e,"id",{get:function(){o()}}),window.__devtrapEl=e}}(),n&&!t&&setTimeout(function(){var e=new RegExp(""),t=0;e.toString=function(){return++t>1&&o(),""},setInterval(function(){window.__neosaurDevMode||(t=0,Function.prototype.toString.call(e))},2e3)},3e3),window.addEventListener("keydown",function(e){if(!window.__neosaurDevMode&&e.metaKey&&e.altKey){var n=e.key.toLowerCase();if(-1!=="icures".indexOf(n))return e.preventDefault(),e.stopImmediatePropagation(),t||o(),!1}},!0)}(),window.addEventListener("DOMContentLoaded",function(){!function(e){if("undefined"==typeof THREE)var t=0,n=setInterval(function(){if(t+=100,"undefined"!=typeof THREE)clearInterval(n),e();else if(t>=1e4){clearInterval(n);var o=(navigator.language||"ja").toLowerCase(),r=o.startsWith("ja"),i=o.startsWith("zh"),a=o.startsWith("ko"),s=r?"3Dエンジンの読み込みに失敗":i?"3D引擎加载失败":a?"3D 엔진 로딩 실패":"3D engine load failed",c=r?"再読み込み":i?"重新加载":a?"새로고침":"Reload";document.getElementById("preloaderScreen").innerHTML='<p style="color:#f00;">'+s+'<br><button onclick="location.reload()" style="padding:1rem 2rem;font-size:1.2rem;background:rgba(255,0,0,0.3);border:2px solid #f00;border-radius:50px;color:#fff;cursor:pointer;margin-top:1rem;">'+c+"</button></p>"}},100);else e()}(function(){var e=document.getElementById("preloaderStatus"),t=document.getElementById("preloaderBarFill"),n=!1,o=(navigator.language||"ja").toLowerCase(),r=o.startsWith("ja"),i=o.startsWith("zh"),a=o.startsWith("ko");window.runIframeIntro=function(){var ov=document.getElementById("iframeIntroOverlay");var ifr=document.getElementById("iframeIntro");if(!ov||!ifr)return;var done=!1;ov.addEventListener("touchstart",function(){if(navigator.vibrate)navigator.vibrate([10,30,10]);try{if(window.iosHaptic&&window.iosHaptic.confirm)window.iosHaptic.confirm()}catch(x){}},{passive:!0});ov.addEventListener("click",function(){if(navigator.vibrate)navigator.vibrate([10,30,10]);try{if(window.iosHaptic&&window.iosHaptic.confirm)window.iosHaptic.confirm()}catch(x){}});function showWelcome(){var w=document.getElementById("welcomeScreen");w.style.transform="scale(0.8)";w.style.opacity="0";w.style.transition="none";w.style.display="flex";w.offsetHeight;w.style.transition="transform 1.2s cubic-bezier(.77,0,.18,1), opacity 1s cubic-bezier(.77,0,.18,1)";w.style.transform="scale(1)";w.style.opacity="1";w.querySelectorAll(".welcome-slidable").forEach(function(e,t){e.style.transition="none";e.style.opacity="0";e.style.transform="translateY(25px)";e.offsetHeight;e.style.transition="transform 1s cubic-bezier(.77,0,.18,1)"+(.08*t+.2)+"s, opacity 1s cubic-bezier(.77,0,.18,1)"+(.08*t+.2)+"s";e.style.transform="translateY(0)";e.style.opacity="1"})}function finish(){if(done)return;done=!0;ifr.style.transition="transform 0.7s cubic-bezier(.77,0,.18,1),filter 0.7s cubic-bezier(.77,0,.18,1),opacity 0.7s cubic-bezier(.77,0,.18,1)";ifr.style.transform="scale(1.8)";ifr.style.filter="blur(20px)";ifr.style.opacity="0";setTimeout(function(){ov.style.display="none";try{ifr.src="about:blank"}catch(x){}showWelcome()},600)};ifr.addEventListener("error",function(){ov.style.display="none";showWelcome()});window.addEventListener("message",function _introTextHandler(ev){if(ev.data==="intro-text-done"){window.removeEventListener("message",_introTextHandler);setTimeout(function(){finish()},1500)}});setTimeout(function(){finish()},15000)};var s=["Back.mp3","hel.mp3","hello.mp3"],c=["ccc.mp3","theme.mp3","BGM-2.mp3","classic.mp3","xmen.mp3","tung.mp3","get.mp3","Explode.mp3","good.mp3","last.mp3","lock.mp3","macR.mp3","macC.mp3","macL.mp3","BEA.mp3","tock.mp3","dm.mp3","lost.mp3","winsong.mp3","intro.mp3","score.mp3","up.mp3","nnn.mp3","dmm.mp3","stop.mp3","return.mp3","1st.mp3","st.mp3","new.mp3","8-dm.mp3","8-good.mp3","64bit-d.mp3","star.mp3","next-c.mp3","jump.mp3","item-j.mp3","8-j.mp3","c-hover.mp3","77-clear.mp3"],l={},d=0,u=s.length,m=!1,p=!1;function f(){m&&p&&y()}function y(){if(!n){n=!0,window.__preloadedAudios=l;document.body.classList.add("loaded");var ifr=document.getElementById("iframeIntro");if(ifr&&ifr.contentWindow){try{ifr.contentWindow.postMessage("loading-done","*")}catch(x){}}runIframeIntro();var r=0;function i(){if(!(r>=c.length)){var e=c[r++],t=new Audio(e);t.preload="auto",l[e]=t,window.__preloadedAudios[e]=t,t.addEventListener("canplaythrough",function(){setTimeout(i,50)},{once:!0}),t.addEventListener("error",function(){setTimeout(i,50)},{once:!0}),t.load()}}i(),i(),i(),i(),i(),i(),i(),i()}}function v(){var e=document.createElement("div");e.style.cssText="position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;background:rgba(0,0,0,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:99999;";var t=r,n=i,o=a,s=t?"ゲームの読み込みに失敗しました":n?"游戏加载失败":o?"게임 로딩 실패":"Failed to load game",c=t?"再読み込み":n?"重新加载":o?"새로고침":"Reload",l=t?"全てリセット":n?"全部重置":o?"전부 초기화":"Reset All";e.innerHTML='<p style="color:#fff;font-size:1.2rem;margin-bottom:1.5rem;font-family:-apple-system,sans-serif;text-align:center;">'+s+'</p><button id="errReloadBtn" style="padding:0.8rem 2.5rem;font-size:1rem;background:rgba(0,255,136,0.3);border:2px solid rgba(0,255,136,0.5);border-radius:50px;color:#fff;cursor:pointer;font-family:-apple-system,sans-serif;margin:0.3rem;-webkit-tap-highlight-color:transparent;">'+c+'</button><button id="errResetBtn" style="padding:0.6rem 2rem;font-size:0.85rem;background:rgba(255,68,68,0.15);border:1.5px solid rgba(255,68,68,0.35);border-radius:50px;color:rgba(255,255,255,0.6);cursor:pointer;font-family:-apple-system,sans-serif;margin:0.3rem;-webkit-tap-highlight-color:transparent;">'+l+"</button>",document.body.appendChild(e),document.getElementById("errReloadBtn").addEventListener("click",function(){"caches"in window&&caches.keys().then(function(e){e.forEach(function(e){caches.delete(e)})}).catch(function(){}),setTimeout(function(){location.reload()},200)}),document.getElementById("errResetBtn").addEventListener("click",function(){var e=document.createElement("div");e.style.cssText="position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:100000;";var r=t?"セーブデータも全て消えます<br>本当にリセットしますか？":n?"所有存档数据将被删除<br>确定要重置吗？":o?"모든 세이브 데이터가 삭제됩니다<br>정말 초기화하시겠습니까?":"All save data will be deleted.<br>Are you sure?",i=t?"リセット":n?"重置":o?"초기화":"Reset",a=t?"キャンセル":n?"取消":o?"취소":"Cancel";e.innerHTML='<p style="color:#ff6666;font-size:1.1rem;margin-bottom:1rem;font-family:-apple-system,sans-serif;text-align:center;">'+r+'</p><div style="display:flex;gap:0.6rem;"><button id="errResetYes" style="padding:0.6rem 1.5rem;border-radius:50px;color:#fff;font-size:0.9rem;background:rgba(255,68,68,0.3);border:2px solid rgba(255,68,68,0.5);cursor:pointer;font-family:-apple-system,sans-serif;">'+i+'</button><button id="errResetNo" style="padding:0.6rem 1.5rem;border-radius:50px;color:#fff;font-size:0.9rem;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);cursor:pointer;font-family:-apple-system,sans-serif;">'+a+"</button></div>",document.body.appendChild(e),document.getElementById("errResetYes").addEventListener("click",function(){try{localStorage.clear()}catch(e){}"caches"in window&&caches.keys().then(function(e){e.forEach(function(e){caches.delete(e)})}).catch(function(){}),"serviceWorker"in navigator&&navigator.serviceWorker.getRegistrations().then(function(e){e.forEach(function(e){e.unregister()})}).catch(function(){}),setTimeout(function(){location.reload()},500)}),document.getElementById("errResetNo").addEventListener("click",function(){e.remove()})})}function g(e){function _exec(c){try{new Function(c)()}catch(t){try{(0,eval)(c)}catch(t2){try{var _s=document.createElement("script");_s.textContent=c;document.head.appendChild(_s)}catch(t3){v()}}}}if(typeof THREE!=='undefined'){_exec(e)}else{var _w=0,_wi=setInterval(function(){_w++;if(typeof THREE!=='undefined'){clearInterval(_wi);_exec(e)}else if(_w>100){clearInterval(_wi);_exec(e)}},100)}}function h(){try{var e="_033b3a75e3568611.js?v="+Date.now(),t=new XMLHttpRequest;t.open("GET",e,!0);try{t.setRequestHeader("X-Neo-Auth",window._neoToken())}catch(e2){}t.timeout=20000;t.onload=function(){try{if(200===t.status&&t.responseText&&t.responseText.length>100){var e=t.responseText;try{Object.defineProperty(t,"responseText",{value:"",writable:!1})}catch(e2){}try{Object.defineProperty(t,"response",{value:"",writable:!1})}catch(e2){}g(e),e=null}else v()}catch(ex){v()}},t.onerror=function(){v()},t.ontimeout=function(){v()},t.send()}catch(ex){v()}}!function(){if(window._earlyGameCode){var e=window._earlyGameCode;window._earlyGameCode=null,g(e),e=null}else if(window._earlyGameError)h();else var t=0,n=setInterval(function(){if(t++,window._earlyGameCode){clearInterval(n);var e=window._earlyGameCode;window._earlyGameCode=null,g(e),e=null}else(window._earlyGameError||t>50)&&(clearInterval(n),h())},100)}(),s.forEach(function(n){try{var o=new Audio(n);function s(){d++,function(){var n=Math.round(d/u*100);t&&(t.style.width=n+"%");var o=n<100?r?"BGMを読み込み中... ":i?"正在加载BGM... ":a?"BGM 로딩 중... ":"Loading BGM... ":r?"読み込み中... ":i?"加载中... ":a?"로딩 중... ":"Loading... ";e&&(e.textContent=o+n+"%")}(),d>=u&&(m=!0,f())}o.preload="auto",l[n]=o,o.addEventListener("canplaythrough",s,{once:!0}),o.addEventListener("error",s,{once:!0});try{o.load()}catch(le){s()}}catch(ae){d++;d>=u&&(m=!0,f())}});var w=setInterval(function(){window.__gameReady&&(clearInterval(w),p=!0,f())},100);setTimeout(function(){n||(m=!0,p=!0,y())},3e3)})});</script>
+    <script>!function(){var t=null,e=document.getElementById("welcomeTitleInput"),r=document.getElementById("neoTranslateResult");if(!e)return;e.addEventListener("blur",function(){e.value.trim()&&"🦕"!==e.value.trim()||(e.value="🦕 Neosaurs")});e.addEventListener("input",function(){var s=e.value.replace(/^🦕\s*/,"").trim();if(s.length<2){if(r){r.style.opacity="0";r.style.transform="translateY(10px)";}return;}var o=/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(s)?"ja|en":"en|ja";t&&clearTimeout(t);t=setTimeout(function(){fetch("https://api.mymemory.translated.net/get?q="+encodeURIComponent(s)+"&langpair="+o).then(function(t){return t.json()}).then(function(t){if(r&&t&&t.responseData&&t.responseData.translatedText){var v=t.responseData.translatedText;if(v.toUpperCase()===s.toUpperCase())return;r.textContent=v;r.style.opacity="1";r.style.transform="translateY(0)";}}).catch(function(){})},400);})}();</script>
+    <script>"serviceWorker"in navigator&&window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>
+    <script data-neo-patch="1">
+    // === NEOSAURS-2 PATCH v3 — bilingual + fixes ===
+    // Flow: Page load → preloader → welcome screen → Start → welcome.mp3 + 3D intro → game start
+    !function(){
+      var BEZ = 'cubic-bezier(.77,0,.18,1)';
+
+      // ── 0. Bilingual: game's own applyI18n handles all text via I18N dict ──
+      // HTML elements keep Japanese defaults, game JS switches based on _lang
+
+      // ── 0b. CSS overrides ──
+      var _patchStyle = document.createElement('style');
+      _patchStyle.textContent = '@keyframes notif-ios-shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-8px)}20%,40%,60%,80%{transform:translateX(8px)}}.notif-shake{animation:notif-ios-shake 0.6s cubic-bezier(.36,.07,.19,.97) both;}.glow-text,input.glow-text{font-family:"SF Pro Display","SF Pro",-apple-system,BlinkMacSystemFont,sans-serif!important;font-weight:50!important;text-shadow:0 1px 3px rgba(255,255,255,0.25),0 0 24px rgba(255,255,255,0.1),0 0 48px rgba(200,220,255,0.06)!important;color:#fff!important;caret-color:#00ff88;animation:caretCycle 0.8s ease infinite;}@keyframes caretCycle{0%,100%{caret-color:#00ff88}33%{caret-color:#fff}66%{caret-color:#00ffff}}#welcomeScreen .liquid-button,#welcomeScreen .share-arrow-btn,#welcomeScreen .settings-arrow-btn{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}#neoClock:active{transform:scale(1.2)!important;transition:transform 0.5s cubic-bezier(.77,0,.18,1)!important;}#welcomeSettingsBtn:active{transform:scale(1.2)!important;transition:transform 0.5s cubic-bezier(.77,0,.18,1)!important;}@media(max-width:768px){.share-arrow-btn,.settings-arrow-btn{width:48px!important;height:48px!important;border-radius:50%!important;}}html,body{overscroll-behavior:none!important;overflow:hidden!important;-webkit-overflow-scrolling:auto!important;}#starColorInput{-webkit-appearance:auto!important;appearance:auto!important;}#preloaderBarFill{max-width:100%!important;}@media(min-width:769px){#welcomeTitleInput{margin-top:2rem!important;}}';
+      document.head.appendChild(_patchStyle);
+
+      // ── 1. iOS Audio Context unlock (AudioContext only, no individual audio play) ──
+      var _audioCtxUnlocked = false;
+      function _unlockAudioCtx(){
+        if(_audioCtxUnlocked) return; _audioCtxUnlocked = true;
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(AC){ try{ var c = new AC(); if(c.state==='suspended') c.resume(); var b=c.createBuffer(1,1,22050),s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){} }
+        ['touchstart','touchend','click'].forEach(function(ev){ document.removeEventListener(ev,_unlockAudioCtx,true); });
+      }
+      ['touchstart','touchend','click'].forEach(function(ev){ document.addEventListener(ev,_unlockAudioCtx,true); });
+
+      // ── 2. Preload welcome.mp3 in parent (reliable on user gesture) ──
+      var _welcomeAudio = new Audio('welcome.mp3');
+      _welcomeAudio.preload = 'auto';
+      _welcomeAudio.volume = 1;
+      try{ _welcomeAudio.load(); }catch(e){}
+
+      // ── 3. Skip iframe intro on load → show welcome directly (3D intro plays on 始める click) ──
+      var _patchedRunIntro = function(){
+        var pre = document.getElementById('preloaderScreen');
+        if(pre){
+          pre.style.pointerEvents = 'none'; // immediate — don't block clicks during fade
+          pre.style.transition='opacity 0.35s '+BEZ;
+          pre.style.opacity='0';
+          setTimeout(function(){ pre.style.display='none'; },350);
+        }
+        var ov = document.getElementById('iframeIntroOverlay');
+        if(ov){ ov.style.display = 'none'; ov.style.pointerEvents = 'none'; }
+        _showWelcome();
+      };
+      window.runIframeIntro = _patchedRunIntro;
+      try{
+        Object.defineProperty(window, 'runIframeIntro', {
+          get: function(){ return _patchedRunIntro; },
+          set: function(){},
+          configurable: true
+        });
+      }catch(e){}
+
+      // ── 4. Welcome screen helper: ALL buttons immediately tappable/clickable ──
+      function _showWelcome(){
+        var w = document.getElementById('welcomeScreen');
+        if(!w || w.style.display === 'flex') return;
+        var items = w.querySelectorAll('.welcome-slidable');
+        // Visible + interactive IMMEDIATELY — no initial hidden state
+        w.style.transition = 'none';
+        w.style.opacity = '1';
+        w.style.transform = 'scale(1)';
+        w.style.display = 'flex';
+        w.style.pointerEvents = 'auto';
+        items.forEach(function(el){
+          el.style.transition = 'none';
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+          el.style.pointerEvents = 'auto';
+        });
+        // Reset clock-specific transforms that may have been left mid-animation
+        // (e.g., scale(1.2) from a tap that didn't finish before navigating away)
+        var _clock = document.getElementById('neoClock');
+        if(_clock){ _clock.style.transform = 'scale(1)'; }
+        var _clockTxt = document.getElementById('neoClockText');
+        if(_clockTxt){ _clockTxt.style.transition = 'none'; _clockTxt.style.transform = 'translateY(0)'; _clockTxt.style.opacity = '1'; }
+        // Ensure preloader is fully gone (don't block clicks)
+        var pre = document.getElementById('preloaderScreen');
+        if(pre){ pre.style.pointerEvents = 'none'; pre.style.display = 'none'; }
+        var ifov = document.getElementById('iframeIntroOverlay');
+        if(ifov){ ifov.style.pointerEvents = 'none'; ifov.style.display = 'none'; }
+      }
+
+      // ── 5. 「始める」→ First visit: 3D intro / Pro (30+eggs): Pro intro / Normal: scale+fade ──
+      var _welcomePlayed = false;
+      var _introDone = false;
+      var startBtn = document.getElementById('welcomeStartButton');
+
+      // Shared: show iframe intro, optional filter/text, then trigger game
+      function _playIframeIntro(filter, proText){
+        var ws = document.getElementById('welcomeScreen');
+        var ov = document.getElementById('iframeIntroOverlay');
+        var ifr = document.getElementById('iframeIntro');
+        if(!ov || !ifr){ _finishIntro(); return; }
+
+        if(ws){ ws.style.transition='opacity 0.4s '+BEZ; ws.style.opacity='0'; }
+        setTimeout(function(){
+          if(ws) ws.style.display = 'none';
+          ov.classList.add('ifr-active');
+          ov.style.display = 'block';
+          ov.style.pointerEvents = 'auto';
+          ifr.style.transition = 'none';
+          ifr.style.transform = 'scale(1.8)'; ifr.style.opacity = '0';
+          ifr.style.filter = filter || 'none';
+          ifr.style.pointerEvents = 'none';
+          ifr.src = 'sonoma-intro.html';
+
+          // Always create "Neosaurs" text overlay; Pro adds "Pro" label
+          var ptx = document.createElement('div'); ptx.id = 'proIntroText';
+          ptx.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:baseline;pointer-events:none;white-space:nowrap;';
+          var html = '<span id="proTitle" style="font-family:\'SF Pro Display\',-apple-system,sans-serif;font-weight:50;font-size:3rem;color:#fff;opacity:0;transform:translateY(30px);transition:opacity 0.8s ease,transform 0.8s ease;">Neosaurs</span>';
+          if(proText) html += '<span id="proLabel" style="font-family:\'SF Pro Display\',-apple-system,sans-serif;font-weight:200;font-size:1.5rem;color:rgba(255,255,255,0.85);opacity:0;transform:translateX(-15px);transition:opacity 0.6s ease,transform 0.6s ease;margin-left:0;"> Pro</span>';
+          ptx.innerHTML = html;
+          ov.appendChild(ptx);
+
+          setTimeout(function(){
+            ifr.style.transition = 'transform 1.5s '+BEZ+', opacity 0.8s '+BEZ;
+            ifr.style.transform = 'scale(1)'; ifr.style.opacity = '1';
+            try{ ifr.contentWindow.postMessage('loading-done','*'); }catch(e){}
+
+            // 4s: "Neosaurs" slides up + background blurs
+            setTimeout(function(){
+              var t=document.getElementById('proTitle');
+              if(t){t.style.opacity='1';t.style.transform='translateY(0)';}
+              ifr.style.transition = 'filter 0.5s ease';
+              ifr.style.filter = (filter||'') + ' blur(4px)';
+            },4000);
+
+            if(proText){
+              // 5s: shift left → 5.5s: "Pro" appears
+              setTimeout(function(){ var t=document.getElementById('proTitle'); if(t){t.style.transition='transform 0.5s '+BEZ;t.style.transform='translateX(-8px)';} },5000);
+              setTimeout(function(){ var l=document.getElementById('proLabel'); if(l){l.style.opacity='1';l.style.transform='translateX(0)';l.style.marginLeft='8px';} },5500);
+            }
+
+            // Listen for intro-text-done or timeout
+            var _done = false;
+            function _onDone(){ if(_done) return; _done = true; _finishIntro(filter); }
+            window.addEventListener('message', function _h(ev){
+              if(ev.data === 'intro-text-done'){ window.removeEventListener('message',_h); setTimeout(_onDone, 1500); }
+            });
+            setTimeout(_onDone, proText ? 7000 : 12000);
+          }, 100);
+        }, 400);
+      }
+
+      function _finishIntro(filter){
+        var ov = document.getElementById('iframeIntroOverlay');
+        var ifr = document.getElementById('iframeIntro');
+        var ptx = document.getElementById('proIntroText');
+
+        if(ifr){
+          ifr.style.transition = 'transform 0.7s '+BEZ+', filter 0.7s '+BEZ+', opacity 0.7s '+BEZ;
+          ifr.style.transform = 'scale(1.8)'; ifr.style.opacity = '0';
+          ifr.style.filter = 'blur(20px) '+(filter||'');
+        }
+        if(ptx){ ptx.style.transition='opacity 0.5s ease'; ptx.style.opacity='0'; }
+
+        setTimeout(function(){
+          if(ov){ ov.classList.remove('ifr-active'); ov.style.display = 'none'; ov.style.pointerEvents = 'none'; }
+          if(ptx && ptx.parentNode) ptx.remove();
+          try{ if(ifr){ ifr.src='about:blank'; ifr.style.filter='none'; ifr.style.transition='none'; ifr.style.transform='scale(1)'; ifr.style.opacity='1'; ifr.style.pointerEvents=''; } }catch(e){}
+          _introDone = true;
+          var sb = document.getElementById('welcomeStartButton');
+          if(sb) sb.click();
+          setTimeout(function(){ _introDone = false; }, 100);
+        }, 700);
+      }
+
+      if(startBtn){
+        startBtn.addEventListener('click', function(e){
+          // Intro bypass → let native handler through
+          if(_introDone){ _introDone = false; return; }
+
+          // welcome.mp3 (first time)
+          if(!_welcomePlayed){ _welcomePlayed = true; _welcomeAudio.currentTime = 0; _welcomeAudio.play().catch(function(){}); }
+
+          // First visit: normal Neosaurs 3D intro
+          var isFirst = false;
+          try{ isFirst = !localStorage.getItem('neosaur_introSeen'); }catch(ex){}
+          if(isFirst){
+            e.stopImmediatePropagation(); e.preventDefault();
+            try{ localStorage.setItem('neosaur_introSeen','1'); }catch(ex){}
+            _playIframeIntro(null, false);
+            return;
+          }
+
+          // Pro (30+ eggs): Pro intro every time
+          var isPro = typeof isCreatorUnlocked === 'function' && isCreatorUnlocked();
+          if(isPro){
+            e.stopImmediatePropagation(); e.preventDefault();
+            _playIframeIntro('hue-rotate(150deg) saturate(1.3) brightness(0.85)', true);
+            return;
+          }
+
+          // Normal: scale+fadeout (non-blocking, native handler fires)
+          this.style.transition = 'transform 1.3s '+BEZ+', opacity 0.5s '+BEZ;
+          this.style.transform = 'scale(1.3)'; this.style.opacity = '0';
+        }, true);
+      }
+
+      // ── 5b. Universal button click safety net: works on PC (mouse), mobile (touch), stylus ──
+      // Uses pointerdown/pointerup pair — fires a synthetic click if the browser's
+      // native click is suppressed (can happen when parent listeners preventDefault touchend,
+      // or when overlays intercept the original mousedown/mouseup).
+      !function(){
+        var BTN_IDS = [
+          'welcomeStartButton','welcomeCreateBtn','welcomeMapBtn',
+          'welcomeShareBtn','welcomeSettingsBtn',
+          'introStartButton','restartButton','lostRestartButton','colorPickerStartBtn',
+          'nbRunBtn','nbDeepBtn','nbBackBtn','nbHelpBtn','nbCloseResultBtn',
+          'nbHistBtn','nbHistClose','nbHelpClose'
+        ];
+        function bindBtn(el){
+          if(!el || el._nbBound) return;
+          el._nbBound = true;
+          var pressed = false;
+          var startX = 0, startY = 0;
+          var nativeClickFired = false;
+          var pressTime = 0;
+
+          // Ensure baseline CSS guarantees
+          try{
+            el.style.touchAction = 'manipulation';
+            el.style.webkitTapHighlightColor = 'transparent';
+          }catch(e){}
+
+          // Track whether browser's native click fires so we don't double-dispatch
+          el.addEventListener('click', function(){ nativeClickFired = true; }, true);
+
+          // pointerdown: start tracking
+          el.addEventListener('pointerdown', function(e){
+            pressed = true;
+            startX = e.clientX; startY = e.clientY;
+            pressTime = Date.now();
+            nativeClickFired = false;
+            try{ el.setPointerCapture && el.setPointerCapture(e.pointerId); }catch(ex){}
+          }, {passive: true});
+
+          // pointerup: if we're still on the button, and native click didn't fire shortly, synth one
+          el.addEventListener('pointerup', function(e){
+            if(!pressed) return;
+            pressed = false;
+            var dx = e.clientX - startX, dy = e.clientY - startY;
+            if(Math.sqrt(dx*dx + dy*dy) > 30) return; // moved too far — not a tap/click
+
+            // Safety: fire a synthetic click if the native one doesn't arrive in 60ms.
+            setTimeout(function(){
+              if(nativeClickFired) return;
+              try{
+                var evt;
+                if(typeof MouseEvent === 'function'){
+                  evt = new MouseEvent('click', {bubbles: true, cancelable: true, view: window,
+                    clientX: e.clientX, clientY: e.clientY, button: 0});
+                } else {
+                  evt = document.createEvent('MouseEvents');
+                  evt.initMouseEvent('click', true, true, window, 1,
+                    e.screenX||0, e.screenY||0, e.clientX||0, e.clientY||0,
+                    false, false, false, false, 0, null);
+                }
+                el.dispatchEvent(evt);
+              }catch(ex){
+                try{ el.click(); }catch(e2){}
+              }
+            }, 60);
+
+            // For startBtn: also focus + dispatch keydown Enter as a belt-and-suspenders fallback.
+            // User reported Enter works but click doesn't on PC — this catches handlers
+            // that only listen for keyboard activation.
+            if(el.id === 'welcomeStartButton' || el.id === 'introStartButton'){
+              setTimeout(function(){
+                if(nativeClickFired) return;
+                try{ el.focus({preventScroll: true}); }catch(ex){}
+                try{
+                  var kev = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true});
+                  el.dispatchEvent(kev);
+                }catch(ex){}
+              }, 120);
+            }
+          }, {passive: true});
+
+          // Legacy touchend fallback for browsers without pointer events
+          if(!('PointerEvent' in window)){
+            el.addEventListener('touchend', function(e){
+              if(e.changedTouches && e.changedTouches.length === 1){
+                try{ el.click(); }catch(ex){}
+              }
+            }, {passive: true});
+          }
+        }
+
+        function bindAll(){
+          BTN_IDS.forEach(function(id){
+            var el = document.getElementById(id);
+            if(el) bindBtn(el);
+          });
+        }
+        bindAll();
+        // Buttons are created by game JS later — re-bind when new buttons appear
+        var _rebindIv = setInterval(bindAll, 500);
+        setTimeout(function(){ clearInterval(_rebindIv); }, 30000);
+
+        // Observe dynamic button creation (neobench views toggle, result buttons, etc.)
+        try{
+          new MutationObserver(function(){ bindAll(); })
+            .observe(document.body, {childList: true, subtree: true});
+        }catch(e){}
+      }();
+
+      // ── 5c. Shield button touchend from document-level 300ms preventDefault ──
+      // Early-script adds a document.addEventListener('touchend', ... preventDefault())
+      // for double-tap zoom protection. On slow devices, even a single tap near a button
+      // can trip the 300ms window (from a prior finger lift), blocking the click.
+      // Capture-phase stopPropagation prevents that handler from seeing button taps.
+      document.addEventListener('touchend', function(e){
+        var t = e.target;
+        if(!t) return;
+        var btn = (t.tagName === 'BUTTON') ? t : (t.closest && t.closest('button'));
+        if(btn) e.stopPropagation();
+      }, true);
+
+      // ── 5d. Defensive overlay killer: remove any stale preloader/iframe overlay blocking clicks ──
+      !function(){
+        function killStaleOverlays(){
+          var pre = document.getElementById('preloaderScreen');
+          if(pre && pre.style.display !== 'none' && window.__gameReady){
+            pre.style.pointerEvents = 'none';
+            pre.style.display = 'none';
+          }
+          var ov = document.getElementById('iframeIntroOverlay');
+          if(ov && !ov.classList.contains('ifr-active')){
+            ov.style.pointerEvents = 'none';
+          }
+        }
+        setInterval(killStaleOverlays, 1000);
+      }();
+
+      // ─────────────────────────────────────────────────────────────────────
+      // === CLEAR → つぎへ → WORLD MAP (deterministic, phase-agnostic) ===
+      // Installed at top level (NOT inside _patched) so it's live before the
+      // game engine finishes wiring itself up. Uses document-level capture
+      // delegation so it fires FIRST for every click on #restartButton and
+      // kills every downstream handler via stopImmediatePropagation, including
+      // the engine's per-phase branches (MOON→EARTH, EARTH↔EARTH, EARTH→SUN,
+      // SUN↔SUN, custom). Also suppresses celestialTransit if the engine
+      // tries to re-show it during the transition window.
+      // ─────────────────────────────────────────────────────────────────────
+      !function(){
+        var _goingToMap = false;
+        var _suppressUntil = 0;
+
+        function _forceHide(el){
+          if(!el) return;
+          el.style.display    = 'none';
+          el.style.opacity    = '';
+          el.style.transform  = '';
+          el.style.transition = '';
+          el.classList && el.classList.remove('show');
+        }
+
+        function _revealWorldMap(){
+          // Prefer the engine's own opener (keeps map globe canvas initialized
+          // and course list regenerated). Fall back to direct DOM reveal.
+          var opened = false;
+          if(typeof window.showWorldMap === 'function'){
+            try{ window.showWorldMap(); opened = true; }catch(e){}
+          }
+          if(!opened){
+            var wms = document.getElementById('worldMapScreen');
+            if(wms){
+              wms.style.display = 'flex';
+              wms.style.opacity = '1';
+              wms.classList.add('show');
+            }
+          }
+          // Even if showWorldMap succeeded, verify it actually became visible —
+          // at some phase boundaries the engine's internal state check fails
+          // silently and the call is a no-op. Belt-and-suspenders.
+          setTimeout(function(){
+            var wms = document.getElementById('worldMapScreen');
+            if(!wms) return;
+            var cs = window.getComputedStyle(wms);
+            if(cs.display === 'none' || parseFloat(cs.opacity||'0') < 0.05){
+              wms.style.display = 'flex';
+              wms.style.opacity = '1';
+              wms.classList.add('show');
+            }
+          }, 50);
+        }
+
+        function _goToWorldMap(){
+          if(_goingToMap) return;
+          _goingToMap = true;
+          _suppressUntil = Date.now() + 1500; // 1.5s suppression window
+
+          // SFX + haptic
+          try{ if(window._neoPlayDown) window._neoPlayDown(); }catch(_){}
+          try{
+            if(window.haptic && window.haptic.confirm) window.haptic.confirm();
+            else if(typeof window.haptic === 'function') window.haptic();
+          }catch(_){}
+
+          // Stop victory BGM (multiple possible APIs)
+          try{
+            if(window.AudioManager){
+              if(AudioManager.stopWinsong)    AudioManager.stopWinsong();
+              if(AudioManager.fadeOutWinsong) AudioManager.fadeOutWinsong();
+              if(AudioManager.stopClearBGM)   AudioManager.stopClearBGM();
+            }
+          }catch(_){}
+
+          // Animate winMenu out (same curve as engine)
+          var wm = document.getElementById('winMenu');
+          if(wm){
+            wm.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            wm.style.transform  = 'scale(1.8)';
+            wm.style.opacity    = '0';
+          }
+
+          setTimeout(function(){
+            _forceHide(wm);
+            _forceHide(document.getElementById('celestialTransit'));
+            _forceHide(document.getElementById('introScreen'));
+            var gu = document.getElementById('gameUI');
+            if(gu) gu.style.display = 'none';
+
+            // Reset engine state flags so the NEXT course starts cleanly.
+            try{
+              if(window.GameState){
+                GameState.gameStarted      = false;
+                GameState._winInputBlocked = false;
+                GameState.isFromWin        = false;
+              }
+              window._isPaused = false;
+            }catch(_){}
+
+            try{ document.body.classList.remove('night-mode'); }catch(_){}
+
+            _revealWorldMap();
+
+            // Release lock after animation + safety margin
+            setTimeout(function(){ _goingToMap = false; }, 400);
+          }, 320);
+        }
+
+        // ── Capture-phase document click: always fires first ──
+        document.addEventListener('click', function(e){
+          var t = e.target;
+          if(!t || !t.closest) return;
+          var btn = t.closest('#restartButton');
+          if(!btn) return;
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          _goToWorldMap();
+        }, true);
+
+        // ── Also capture pointerup (iOS Safari sometimes routes tap here before click) ──
+        document.addEventListener('pointerup', function(e){
+          if(Date.now() < _suppressUntil) return; // already handled
+          var t = e.target;
+          if(!t || !t.closest) return;
+          var btn = t.closest('#restartButton');
+          if(!btn) return;
+          // Don't fire twice — let the synthesized click in a moment do it.
+          // But if it doesn't fire within 120ms, fire ourselves.
+          setTimeout(function(){
+            if(_goingToMap) return;
+            if(Date.now() >= _suppressUntil) _goToWorldMap();
+          }, 120);
+        }, true);
+
+        // ── Suppress celestialTransit during the transition window ──
+        // The engine may asynchronously try to show it for the next phase;
+        // while we're heading to worldmap, keep it hidden.
+        try{
+          var ct = document.getElementById('celestialTransit');
+          if(ct){
+            new MutationObserver(function(){
+              if(Date.now() < _suppressUntil){
+                if(ct.style.display !== 'none'){
+                  ct.style.display = 'none';
+                  ct.style.opacity = '';
+                }
+              }
+            }).observe(ct, {attributes:true, attributeFilter:['style','class']});
+          }
+        }catch(_){}
+
+        // ── Keep restartButton interactive at all times when winMenu is shown.
+        // The engine sometimes leaves opacity:0 / transform scale(0.8) on it
+        // at phase boundaries, so the button renders invisible / mis-positioned.
+        try{
+          var wmObs = document.getElementById('winMenu');
+          if(wmObs){
+            new MutationObserver(function(){
+              var cs = window.getComputedStyle(wmObs);
+              if(cs.display === 'none') return;
+              var rb = document.getElementById('restartButton');
+              if(!rb) return;
+              // Force fully visible + interactive whenever winMenu is visible.
+              if(rb.style.opacity !== '' && parseFloat(rb.style.opacity) < 1)
+                rb.style.opacity = '1';
+              if(rb.style.transform && /scale\(0(\.\d+)?\)/.test(rb.style.transform))
+                rb.style.transform = '';
+              rb.style.pointerEvents = 'auto';
+              // Ensure text is correct (engine may localize it)
+              if(!rb.textContent || !rb.textContent.trim()){
+                rb.textContent = 'つぎへ';
+              }
+            }).observe(wmObs, {attributes:true, attributeFilter:['style','class'],
+                                childList:true, subtree:true});
+          }
+        }catch(_){}
+      }();
+
+      // ── 6. Game-ready patches ──
+      var _patched = false;
+      var _patchInterval = setInterval(function(){
+        if(!window.__gameReady || _patched) return;
+        _patched = true; clearInterval(_patchInterval);
+
+        // Restore GameState from localStorage
+        if(window.GameState){
+          try{
+            var ch=localStorage.getItem('neosaur_clearHistory');
+            if(ch){ var a=JSON.parse(ch); if(Array.isArray(a)&&a.length>0&&(!GameState.clearHistory||GameState.clearHistory.length<a.length)){ GameState.clearHistory=a; GameState.isFirstEverClear=false; GameState.totalClears=Math.max(GameState.totalClears||0,a.length); if(typeof calcEggsForRound==='function') GameState.totalEggsNeeded=calcEggsForRound(GameState.totalClears); } }
+          }catch(e){}
+          var sc=localStorage.getItem('neosaur_totalClears');
+          if(sc){ var tc=parseInt(sc,10); if(!isNaN(tc)&&tc>(GameState.totalClears||0)){ GameState.totalClears=tc; if(typeof calcEggsForRound==='function') GameState.totalEggsNeeded=calcEggsForRound(tc); if(!GameState.clearHistory||GameState.clearHistory.length===0){ GameState.clearHistory=[]; for(var i=0;i<tc;i++) GameState.clearHistory.push({round:i+1,score:1000,maxCombo:5,eggs:(typeof calcEggsForRound==='function'?calcEggsForRound(i):3),time:Date.now()}); GameState.isFirstEverClear=false; try{localStorage.setItem('neosaur_clearHistory',JSON.stringify(GameState.clearHistory));}catch(e){} } } }
+        }
+
+        // Creator: keep native 30-egg check, but NUKE the tooltip popup silently
+        // Also remove shake animation on locked button click
+        if(typeof setupCreateButton==='function') try{setupCreateButton();}catch(e){}
+        new MutationObserver(function(muts){
+          for(var i=0;i<muts.length;i++){
+            var added=muts[i].addedNodes;
+            for(var j=0;j<added.length;j++){
+              if(added[j].id==='createLockedTooltip') added[j].remove();
+            }
+          }
+        }).observe(document.body,{childList:true});
+
+        // Patch saveClearHistory
+        if(typeof saveClearHistory==='function'){ var _origSave=saveClearHistory; window.saveClearHistory=function(){ _origSave(); if(window.GameState){ try{ localStorage.setItem('neosaur_totalClears',String(GameState.totalClears||0)); }catch(e){} } }; }
+
+        // NOTE: Clear → つぎへ → WORLD MAP logic moved to a top-level delegated
+        // handler (see 'clear-to-worldmap' block outside the _patched interval).
+        // Placing it inside _patched was fragile: the engine could recreate the
+        // #restartButton or mutate winMenu opacity between MOON/EARTH/SUN phases,
+        // bypassing a one-shot cloneNode listener. The new design uses document-
+        // level capture + a celestialTransit suppressor so every clear — moon,
+        // earth, sun, sun↔sun, custom — deterministically routes to WORLD MAP.
+        // Hide score & combo stats on win screen
+        var fsEl = document.getElementById('i18n-finalScore');
+        var mcEl = document.getElementById('i18n-maxCombo');
+        if(fsEl) fsEl.style.display = 'none';
+        if(mcEl) mcEl.style.display = 'none';
+
+        // Editor: scale canvas 1→1.11 when dragging an object, back to 1 on drop
+        !function(){
+          var ec = document.getElementById('editorCanvas');
+          if(!ec) return;
+          ec.style.transition = 'transform 0.5s cubic-bezier(.77,0,.18,1)';
+          ec.style.transformOrigin = 'center center';
+          var _dragging = false;
+          document.querySelectorAll('#editorToolbar .editor-item').forEach(function(item){
+            item.addEventListener('touchstart', function(){
+              if(!_dragging){ _dragging = true; ec.style.transform = 'scale(1.11)'; }
+            }, {passive:true});
+            item.addEventListener('mousedown', function(){
+              if(!_dragging){ _dragging = true; ec.style.transform = 'scale(1.11)'; }
+            });
+          });
+          function _resetScale(){ if(_dragging){ _dragging = false; ec.style.transform = 'scale(1)'; } }
+          document.addEventListener('touchend', _resetScale, {passive:true});
+          document.addEventListener('mouseup', _resetScale);
+        }();
+
+      }, 100);
+
+      // ── 7. Crash protection: save state on hide/unload ──
+      function _emergencySave(){
+        if(!window.GameState) return;
+        try{
+          if(GameState.clearHistory&&GameState.clearHistory.length>0){ localStorage.setItem('neosaur_clearHistory',JSON.stringify(GameState.clearHistory)); localStorage.setItem('neosaur_totalClears',String(GameState.totalClears||GameState.clearHistory.length)); }
+        }catch(e){}
+      }
+      document.addEventListener('visibilitychange',function(){if(document.hidden)_emergencySave();});
+      window.addEventListener('beforeunload',_emergencySave);
+      window.addEventListener('pagehide',_emergencySave);
+
+      // ── 7b. UI Sound Effects (exclusive — only one plays at a time) ──
+      !function(){
+        var _sfxUp = new Audio('up.mp3'); _sfxUp.preload = 'auto';
+        var _sfxDown = new Audio('down.mp3'); _sfxDown.preload = 'auto';
+        var _sfxLanch = new Audio('lanch-benti.mp3'); _sfxLanch.preload = 'auto';
+        var _sfxLanchOut = new Audio('lanch-out.mp3'); _sfxLanchOut.preload = 'auto';
+        var _sfxShortcut = new Audio('shortcut.mp3'); _sfxShortcut.preload = 'auto';
+        var _allSfx = [_sfxUp, _sfxDown, _sfxLanch, _sfxLanchOut, _sfxShortcut];
+
+        // Stop all other SFX, then play one
+        function _playSfx(a){
+          try{
+            _allSfx.forEach(function(s){ if(s !== a){ s.pause(); s.currentTime = 0; } });
+            a.currentTime = 0;
+            a.play().catch(function(){});
+          }catch(e){}
+        }
+
+        // Expose for create button
+        window._neoPlayShortcut = function(){ _playSfx(_sfxShortcut); };
+        // Expose down.mp3 for next-button worldmap handler (rebound after clone)
+        window._neoPlayDown = function(){ _playSfx(_sfxDown); };
+        window._neoPlayUp = function(){ _playSfx(_sfxUp); };
+
+        // editorBackBtn (作る←戻る) → up.mp3
+        var _edBack = document.getElementById('editorBackBtn');
+        if(_edBack) _edBack.addEventListener('click', function(){ _playSfx(_sfxUp); });
+
+        // lostRestartButton (リトライ) → down.mp3
+        // NOTE: restartButton has its own dedicated handler (see CLEAR→WORLDMAP block)
+        //   that plays down.mp3 itself, because the button is cloneNode-replaced to
+        //   strip the engine's opacity-routing click handler.
+        var _lrb = document.getElementById('lostRestartButton');
+        if(_lrb) _lrb.addEventListener('click', function(){ _playSfx(_sfxDown); });
+
+        // Neobench SFX now handled in neobench-redesign script
+        // (sfxRun/sfxDeep on click, sfxResult on result shown) — no need to
+        // play lanch-benti / lanch-out on the hidden original overlay.
+      }();
+
+      // ── 8. Game's applyI18n handles all i18n natively ──
+
+      // 作るボタン: Dynamic Island風 — 同位置クロスフェード+pill拡張
+      !function(){
+        var _createBtn = document.getElementById('welcomeCreateBtn');
+        if(!_createBtn) return;
+        var _lockAnimating = false;
+        var DI = 'cubic-bezier(0.175,0.885,0.32,1.075)'; // iOS spring
+
+        _createBtn.addEventListener('click', function(e){
+          if(!this.classList.contains('locked')){
+            if(window._neoPlayShortcut) window._neoPlayShortcut();
+            return;
+          }
+          e.stopImmediatePropagation(); e.preventDefault();
+          if(_lockAnimating) return;
+          _lockAnimating = true;
+          this.classList.remove('shake-anim');
+
+          var btn = this;
+          var origText = btn.textContent;
+
+          // Haptic
+          _doHaptic();
+
+          // Set relative for absolute children
+          btn.style.position = 'relative'; btn.style.overflow = 'hidden';
+
+          // Old text (absolute center)
+          btn.innerHTML = '';
+          var old = document.createElement('span');
+          old.textContent = origText;
+          old.style.cssText = 'transition:opacity 0.25s ease,transform 0.3s '+DI+';display:block;';
+          btn.appendChild(old);
+
+          // Hint text (same position, starts hidden below)
+          var hint = document.createElement('span');
+          hint.textContent = '卵を30個集めよう 🥚';
+          hint.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) translateY(6px);opacity:0;transition:opacity 0.3s ease 0.1s,transform 0.4s '+DI+' 0.1s;font-size:0.75rem;color:rgba(255,255,255,0.7);white-space:nowrap;pointer-events:none;';
+          btn.appendChild(hint);
+
+          // Expand pill + crossfade — all simultaneous
+          btn.style.transition = 'padding 0.5s '+DI;
+          requestAnimationFrame(function(){ requestAnimationFrame(function(){
+            old.style.opacity = '0'; old.style.transform = 'translateY(-6px)';
+            btn.style.paddingLeft = '2.8rem'; btn.style.paddingRight = '2.8rem';
+            hint.style.opacity = '1'; hint.style.transform = 'translate(-50%,-50%)';
+          }); });
+
+          // 1.3s: return — all simultaneous
+          setTimeout(function(){
+            hint.style.transition = 'opacity 0.25s ease,transform 0.3s '+DI;
+            hint.style.opacity = '0'; hint.style.transform = 'translate(-50%,-50%) translateY(-6px)';
+            btn.style.transition = 'padding 0.5s '+DI;
+            btn.style.paddingLeft = ''; btn.style.paddingRight = '';
+            old.style.transition = 'opacity 0.3s ease 0.1s,transform 0.4s '+DI+' 0.1s';
+            old.style.opacity = '1'; old.style.transform = 'translateY(0)';
+            setTimeout(function(){
+              if(hint.parentNode) hint.remove();
+              if(old.parentNode) old.remove();
+              btn.textContent = origText;
+              btn.style.position = ''; btn.style.overflow = '';
+              _lockAnimating = false;
+            }, 500);
+          }, 1300);
+        }, true);
+      }();
+
+      // ── 10. Haptic on title text + how-to overlay ──
+      function _doHaptic(){
+        try{
+          if(window.haptic && window.haptic.confirm) haptic.confirm();
+          else if(window.iosHaptic && window.iosHaptic.confirm) iosHaptic.confirm();
+        }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(10);
+      }
+      !function(){
+        // Title haptic (confirmed working)
+        var title = document.getElementById('welcomeTitleInput');
+        if(title){
+          title.addEventListener('touchstart', _doHaptic, {passive:true});
+          title.addEventListener('click', _doHaptic);
+        }
+
+        // How-to / instruction overlay
+        document.addEventListener('touchstart', function(e){
+          var el = e.target.closest ? e.target.closest('.neo-howto-img, .neo-overlay, #howToPlayOverlay') : null;
+          if(el) _doHaptic();
+        }, {passive:true});
+      }();
+
+      // ── 11. iOS-style Clock + OS label + Neobench trigger ──
+      !function(){
+        var clockEl = document.getElementById('neoClockText');
+        var hintEl = document.getElementById('neoClockHint');
+        var osLabel = document.getElementById('neoOSLabel');
+        if(!clockEl) return;
+
+        // Detect OS
+        var ua = navigator.userAgent;
+        var osName = /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'OS';
+        if(osLabel) osLabel.textContent = osName;
+
+        // Update clock
+        var _lastMin = -1;
+        function _updateClock(){
+          var now = new Date();
+          var h = now.getHours(); var m = now.getMinutes();
+          var str = h + ':' + (m < 10 ? '0' : '') + m;
+          if(m !== _lastMin && _lastMin >= 0){
+            // Slide-up animation on minute change
+            clockEl.style.transition = 'transform 0.4s cubic-bezier(.77,0,.18,1), opacity 0.3s ease';
+            clockEl.style.transform = 'translateY(-100%)'; clockEl.style.opacity = '0';
+            setTimeout(function(){
+              clockEl.textContent = str;
+              clockEl.style.transition = 'none';
+              clockEl.style.transform = 'translateY(100%)'; clockEl.style.opacity = '0';
+              requestAnimationFrame(function(){ requestAnimationFrame(function(){
+                clockEl.style.transition = 'transform 0.4s cubic-bezier(.77,0,.18,1), opacity 0.3s ease';
+                clockEl.style.transform = 'translateY(0)'; clockEl.style.opacity = '1';
+              }); });
+            }, 350);
+          } else {
+            clockEl.textContent = str;
+          }
+          _lastMin = m;
+        }
+        _updateClock();
+        setInterval(_updateClock, 5000);
+
+        // Clock tap → scale 1.2 + haptic + Neobench
+        var clockParent = document.getElementById('neoClock');
+        var _clockTouched = false;
+
+        function _clockTapAnim(){
+          _doHaptic();
+          if(clockParent){
+            clockParent.style.transform = 'scale(1.2)';
+            setTimeout(function(){ clockParent.style.transform = 'scale(1)'; }, 500);
+          }
+          // Fire bench via benchHint click
+          setTimeout(function(){
+            var bh = document.getElementById('benchHint');
+            if(bh) bh.click();
+          }, 100);
+        }
+
+        if(clockParent){
+          clockParent.addEventListener('touchstart', function(){ _clockTouched = true; _clockTapAnim(); }, {passive:true});
+          clockParent.addEventListener('click', function(){ if(_clockTouched){ _clockTouched = false; return; } _clockTapAnim(); });
+        }
+        if(hintEl){
+          hintEl.addEventListener('touchstart', function(){ _clockTouched = true; _clockTapAnim(); }, {passive:true});
+          hintEl.addEventListener('click', function(){ if(_clockTouched){ _clockTouched = false; return; } _clockTapAnim(); });
+        }
+
+        // Block Enter key inside Neobench overlays
+        document.addEventListener('keydown', function(e){
+          if(e.key === 'Enter' || e.keyCode === 13){
+            if(document.getElementById('benchmarkOverlay') || document.getElementById('benchPickerOverlay')){
+              e.preventDefault(); e.stopPropagation();
+            }
+          }
+        }, true);
+      }();
+
+      // Intro-notif shake: handled by inline script at line 76, no duplication here.
+
+      // (Moon sky handled by CSS in style.css: body.night-mode:not(.retro-8bit) canvas filter)
+
+      // ── 9. Fullscreen/standalone: block swipe-down-to-dismiss completely ──
+      if(window.navigator.standalone || (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches))){
+        document.addEventListener('touchmove', function(e){
+          // Only allow scroll inside explicit scrollable containers
+          if(!e.target.closest || !e.target.closest('.scrollable, #mapCourseList, #editorToolbar, #benchHelpArea')){
+            e.preventDefault();
+          }
+        }, {passive: false});
+        document.addEventListener('touchstart', function(e){
+          // Block edge swipes (top 20px area)
+          if(e.touches[0] && e.touches[0].clientY < 20) e.preventDefault();
+        }, {passive: false});
+      }
+
+    }();
+    </script>
+    <script data-neo-patch="neobench-redesign">
+    // === NEOBENCH COMPLETE REDESIGN — Beautiful macOS-style UI ===
+    !function(){
+      var BEZ = 'cubic-bezier(.77,0,.18,1)';
+      var SPRING = 'cubic-bezier(0.175,0.885,0.32,1.075)';
+
+      // ── Inject NeoBench CSS ──
+      var nbStyle = document.createElement('style');
+      nbStyle.textContent = [
+        '#neobenchOverlay{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:99995;display:none;overflow:hidden;}',
+        '#neobenchOverlay.nb-visible{display:flex;flex-direction:column;justify-content:center;align-items:center;}',
+        '#neobenchBg{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0);backdrop-filter:blur(0px) saturate(100%);-webkit-backdrop-filter:blur(0px) saturate(100%);transition:background 0.7s '+BEZ+',backdrop-filter 0.7s '+BEZ+',-webkit-backdrop-filter 0.7s '+BEZ+';pointer-events:all;will-change:backdrop-filter,background;}',
+        '#neobenchBg.nb-dim{background:rgba(0,0,0,0.38);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);}',
+        '#neobenchCard{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 2rem 2rem;min-height:60vh;width:100%;max-width:100%;transform:translateY(28px);opacity:0;transition:transform 0.7s '+BEZ+',opacity 0.7s '+BEZ+';pointer-events:all;will-change:transform,opacity;}',
+        '#neobenchCard.nb-in{transform:translateY(0);opacity:1;}',
+        '#neobenchCard.nb-out{transform:translateY(28px);opacity:0;}',
+        '.nb-subtitle{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:300;font-size:0.9rem;color:rgba(255,255,255,0.5);letter-spacing:0.05em;margin:0 0 0.9rem;text-align:center;width:100%;}',
+        '.nb-title{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:100;font-size:3.2rem;color:#fff;letter-spacing:-0.02em;margin:0 0 3rem;text-align:center;width:100%;line-height:1.1;}',
+        '#nbPickerView,#nbRunningView,#nbResultView{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;text-align:center;padding-top:2.5rem;}',
+        '#nbPickerView .nb-btn-primary{margin-bottom:0.8rem;}',
+        '#nbPickerView .nb-btn-secondary{margin-top:0.2rem;}',
+        /* View swap slide-up (picker → running → result) — 0.5s iOS-style */
+        '.nb-view-enter{animation:nbViewEnter 0.5s '+BEZ+' both;}',
+        '@keyframes nbViewEnter{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}',
+        '.nb-btn-primary{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:1.15rem;font-weight:400;color:#fff;background:transparent;border:1px solid rgba(255,255,255,0.22);border-radius:50px;padding:0.85rem 3.5rem;cursor:pointer;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);box-shadow:0 8px 24px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.22) inset,0 -1px 0 rgba(0,0,0,0.2) inset;transition:transform 0.3s '+BEZ+',box-shadow 0.2s ease,border-color 0.2s ease;letter-spacing:0.01em;}',
+        '.nb-btn-primary:active{transform:scale(0.95);box-shadow:0 4px 12px rgba(0,0,0,0.3),0 1px 0 rgba(255,255,255,0.15) inset;border-color:rgba(255,255,255,0.35);}',
+        '.nb-btn-secondary{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:1rem;font-weight:400;color:rgba(255,255,255,0.7);background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:0.8rem 2rem;transition:opacity 0.2s ease;}',
+        '.nb-btn-secondary:active{opacity:0.5;}',
+        '.nb-circle-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,0.22);box-shadow:0 6px 18px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.22),inset 0 -1px 0 rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:"SF Pro Display",-apple-system,sans-serif;font-size:1.2rem;color:#fff;transition:transform 0.3s '+BEZ+',box-shadow 0.2s ease,border-color 0.2s ease;}',
+        '.nb-circle-btn:active{transform:scale(0.9);border-color:rgba(255,255,255,0.35);box-shadow:0 3px 10px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.18);}',
+        '.nb-bottom-bar{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;z-index:3;transform:translateY(28px);opacity:0;transition:transform 0.5s ease,opacity 0.5s ease;will-change:transform,opacity;}',
+        '#neobenchOverlay.nb-visible .nb-bottom-bar{transform:translateY(0);opacity:1;}',
+        /* nbHistBtn anchor div — slide up/down with overlay */
+        '#neobenchHistoryBtn{transition:transform 0.5s ease,opacity 0.5s ease;}',
+        '.nb-history-btn{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.85rem;font-weight:400;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.08);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,0.14);border-radius:50px;padding:0.5rem 1.2rem;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.5s ease,opacity 0.5s ease;opacity:0;transform:translateY(24px);pointer-events:none;}',
+        '.nb-history-btn.nb-show{opacity:1;transform:translateY(0);pointer-events:auto;}',
+        '.nb-history-btn:active{transform:translateY(0) scale(0.94);}',
+        /* Running state */
+        '.nb-running{text-align:center;}',
+        '.nb-progress-wrap{width:200px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin:1.5rem auto 1rem;overflow:hidden;}',
+        '.nb-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#00ccff);border-radius:2px;transition:width 0.3s ease;}',
+        '.nb-status-text{font-family:"SF Mono",monospace;font-size:0.85rem;color:rgba(255,255,255,0.5);}',
+        /* Result state */
+        '.nb-result-score{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:100;font-size:4.5rem;color:#fff;margin:0.5rem 0;}',
+        '.nb-result-label{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.85rem;color:rgba(255,255,255,0.4);margin-bottom:0.3rem;}',
+        '.nb-result-detail{font-family:"SF Mono",monospace;font-size:0.8rem;color:rgba(255,255,255,0.45);margin:0.15rem 0;}',
+        /* History */
+        '#neobenchHistory{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99996;display:none;flex-direction:column;overflow:hidden;}',
+        '#neobenchHistory.nb-visible{display:flex;}',
+        '.nb-hist-bg{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0);backdrop-filter:blur(0px) saturate(100%);-webkit-backdrop-filter:blur(0px) saturate(100%);transition:background 0.7s '+BEZ+',backdrop-filter 0.7s '+BEZ+',-webkit-backdrop-filter 0.7s '+BEZ+';}',
+        '.nb-hist-bg.nb-dim{background:rgba(0,0,0,0.45);backdrop-filter:blur(32px) saturate(180%);-webkit-backdrop-filter:blur(32px) saturate(180%);}',
+        '.nb-hist-content{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateY(40px);opacity:0;transition:transform 0.5s ease,opacity 0.5s ease;will-change:transform,opacity;}',
+        '.nb-hist-content.nb-in{transform:translateY(0);opacity:1;}',
+        '.nb-hist-title{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:200;font-size:1.8rem;color:#fff;text-align:center;margin-bottom:1.2rem;}',
+        '.nb-hist-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px;}',
+        '.nb-hist-item{background:rgba(255,255,255,0.06);border-radius:14px;padding:0.7rem 0.95rem;margin-bottom:0.45rem;display:flex;justify-content:space-between;align-items:center;gap:10px;will-change:transform,opacity,max-height;}',
+        '.nb-hist-item-left{display:flex;flex-direction:column;gap:1px;min-width:0;}',
+        '.nb-hist-item-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}',
+        '.nb-hist-item-score{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:300;font-size:1.2rem;color:#fff;line-height:1.1;}',
+        '.nb-hist-item-type{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.35);}',
+        '.nb-hist-item-date{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.72rem;color:rgba(255,255,255,0.32);text-align:right;white-space:nowrap;}',
+        '.nb-hist-item-del{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.68rem;font-weight:400;color:rgba(255,90,90,0.8);background:rgba(255,60,60,0.08);border:1px solid rgba(255,90,90,0.22);border-radius:50px;padding:2px 9px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.2s '+BEZ+',background 0.2s ease,color 0.2s ease;letter-spacing:0.02em;}',
+        '.nb-hist-item-del:active{transform:scale(0.88);background:rgba(255,60,60,0.2);color:#fff;}',
+        '.nb-hist-close{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.95rem;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.08);border:none;border-radius:50px;padding:0.6rem 2rem;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:1rem;align-self:center;transition:transform 0.3s '+BEZ+';}',
+        '.nb-hist-close:active{transform:scale(0.95);}',
+        /* Help */
+        '#neobenchHelp{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99997;display:none;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;}',
+        '#neobenchHelp.nb-visible{display:flex;}',
+        '.nb-help-bg{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0);backdrop-filter:blur(0px) saturate(100%);-webkit-backdrop-filter:blur(0px) saturate(100%);transition:background 0.5s '+BEZ+',backdrop-filter 0.5s '+BEZ+',-webkit-backdrop-filter 0.5s '+BEZ+';}',
+        '.nb-help-bg.nb-dim{background:rgba(0,0,0,0.5);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);}',
+        '.nb-help-card{position:relative;z-index:2;background:rgba(255,255,255,0.08);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:24px;padding:2rem 1.8rem;max-width:320px;width:85%;transform:scale(0.9);opacity:0;transition:transform 0.4s '+SPRING+',opacity 0.3s ease;}',
+        '.nb-help-card.nb-in{transform:scale(1);opacity:1;}',
+        '.nb-help-title{font-family:"SF Pro Display",-apple-system,sans-serif;font-weight:300;font-size:1.3rem;color:#fff;margin-bottom:1rem;}',
+        '.nb-help-text{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.85rem;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:1.2rem;}',
+        '.nb-help-close{font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.9rem;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);border:none;border-radius:50px;padding:0.5rem 2rem;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.3s '+BEZ+';}',
+        '.nb-help-close:active{transform:scale(0.95);}',
+        /* PC: full width, no constraint */
+        '@media (min-width:769px) and (hover:hover) and (pointer:fine){',
+        '  #neobenchOverlay,#neobenchHistory,#neobenchHelp{width:100vw!important;max-width:100vw!important;}',
+        '}'
+      ].join('\n');
+      document.head.appendChild(nbStyle);
+
+      // ── Create NeoBench overlay HTML ──
+      var nbOverlay = document.createElement('div');
+      nbOverlay.id = 'neobenchOverlay';
+      nbOverlay.innerHTML = [
+        '<div id="neobenchBg"></div>',
+        '<div id="neobenchHistoryBtn" style="position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);left:50%;transform:translateX(-50%);z-index:3;">',
+        '  <button class="nb-history-btn" id="nbHistBtn">検証履歴を表示</button>',
+        '</div>',
+        '<div id="neobenchCard">',
+        '  <div id="nbPickerView">',
+        '    <p class="nb-subtitle">コンピュータの性能を検証</p>',
+        '    <h1 class="nb-title">NeoBench</h1>',
+        '    <button class="nb-btn-primary" id="nbRunBtn">検証する</button>',
+        '    <button class="nb-btn-secondary" id="nbDeepBtn">深く検証する</button>',
+        '  </div>',
+        '  <div id="nbRunningView" class="nb-running" style="display:none;">',
+        '    <p class="nb-subtitle" id="nbRunLabel">NEOBENCH</p>',
+        '    <p class="nb-subtitle" id="nbRunVersion" style="color:rgba(255,255,255,0.3);">v2.0</p>',
+        '    <div class="nb-progress-wrap"><div class="nb-progress-bar" id="nbProgressBar"></div></div>',
+        '    <p class="nb-status-text" id="nbStatusText">準備中...</p>',
+        '  </div>',
+        '  <div id="nbResultView" style="display:none;">',
+        '    <p class="nb-subtitle" id="nbResultTitle">NEOBENCH v2.0</p>',
+        '    <div class="nb-result-score" id="nbScoreValue">0</div>',
+        '    <p class="nb-result-label" id="nbScoreLabel">総合スコア</p>',
+        '    <div id="nbResultDetails" style="margin-top:1rem;text-align:center;"></div>',
+        '    <button class="nb-btn-primary" id="nbCloseResultBtn" style="margin-top:2rem;">閉じる</button>',
+        '  </div>',
+        '</div>',
+        '<div class="nb-bottom-bar">',
+        '  <button class="nb-circle-btn" id="nbBackBtn"><span style="font-family:-apple-system,sans-serif;font-weight:300;font-size:1.4rem;margin-top:-1px;">‹</span></button>',
+        '  <button class="nb-circle-btn" id="nbHelpBtn">?</button>',
+        '</div>'
+      ].join('');
+      document.body.appendChild(nbOverlay);
+
+      // History overlay
+      var nbHistory = document.createElement('div');
+      nbHistory.id = 'neobenchHistory';
+      nbHistory.innerHTML = [
+        '<div class="nb-hist-bg" id="nbHistBg"></div>',
+        '<div class="nb-hist-content" id="nbHistContent">',
+        '  <h2 class="nb-hist-title">検証履歴</h2>',
+        '  <div class="nb-hist-list scrollable" id="nbHistList"></div>',
+        '  <button class="nb-hist-close" id="nbHistClose">閉じる</button>',
+        '</div>'
+      ].join('');
+      document.body.appendChild(nbHistory);
+
+      // Help overlay
+      var nbHelp = document.createElement('div');
+      nbHelp.id = 'neobenchHelp';
+      nbHelp.innerHTML = [
+        '<div class="nb-help-bg" id="nbHelpBg"></div>',
+        '<div class="nb-help-card" id="nbHelpCard">',
+        '  <h3 class="nb-help-title">NeoBench について</h3>',
+        '  <p class="nb-help-text">NeoBenchはデバイスの性能を測定するベンチマークツールです。<br><br>',
+        '  <strong>検証する</strong> — CPU・GPU・メモリの基本テスト<br>',
+        '  <strong>深く検証する</strong> — より詳細な負荷テスト<br><br>',
+        '  スコアが高いほど高性能なデバイスです。</p>',
+        '  <button class="nb-help-close" id="nbHelpClose">OK</button>',
+        '</div>'
+      ].join('');
+      document.body.appendChild(nbHelp);
+
+      // ── State ──
+      var nbState = { open: false, running: false, view: 'picker' };
+      var BENCH_HISTORY_KEY = 'neobench_history';
+
+      // ── NeoBench-scoped SFX ──
+      // Strategy: cloneNode-on-click. A master Audio is preloaded for each file;
+      // each click clones the master and plays the clone. Clones auto-cleanup on
+      // 'ended'. This GUARANTEES every press fires sound (no pause→play races,
+      // works after the game's audio engine has woken up). To avoid two
+      // different NeoBench sounds overlapping, each call first pauses any
+      // currently playing clones from OTHER files.
+      var _nbMasters = {};       // src → master Audio (for cloning)
+      var _nbActiveClones = {};  // src → [clones currently playing]
+      function _mkSfx(src, vol){
+        var master = new Audio(src);
+        master.preload = 'auto';
+        master.volume = vol;
+        try{ master.load(); }catch(e){}
+        _nbMasters[src] = master;
+        _nbActiveClones[src] = [];
+        return function(){
+          // Stop currently-playing clones of DIFFERENT files (no cross-overlap)
+          Object.keys(_nbActiveClones).forEach(function(otherSrc){
+            if(otherSrc === src) return;
+            _nbActiveClones[otherSrc].forEach(function(c){
+              try{ c.pause(); c.currentTime = 0; }catch(e){}
+            });
+            _nbActiveClones[otherSrc] = [];
+          });
+          // Clone & play (always succeeds, even on rapid repeat)
+          try{
+            var c = master.cloneNode(true);
+            c.volume = vol;
+            _nbActiveClones[src].push(c);
+            c.addEventListener('ended', function(){
+              var arr = _nbActiveClones[src];
+              var i = arr.indexOf(c);
+              if(i >= 0) arr.splice(i, 1);
+            }, {once:true});
+            var p = c.play();
+            if(p && p.catch) p.catch(function(){
+              // Fallback: try master directly (after unlock)
+              try{ master.currentTime = 0; master.play().catch(function(){}); }catch(e){}
+            });
+          }catch(e){
+            try{ master.currentTime = 0; master.play().catch(function(){}); }catch(e){}
+          }
+        };
+      }
+      var sfxOpen    = _mkSfx('last.mp3',      0.85);   // NeoBench 起動
+      var sfxRun     = _mkSfx('click-003.mp3', 0.85);   // 検証する
+      var sfxDeep    = _mkSfx('c3.mp3',        0.85);   // 深く検証する
+      var sfxHelp    = _mkSfx('h2.mp3',        0.85);   // ?
+      var sfxBack    = _mkSfx('hover-x6.mp3',  0.85);   // ‹ (neobench から戻る)
+      var sfxHistOpen= _mkSfx('click-01.mp3',  0.85);   // 検証履歴を表示
+      var sfxBackMp3 = _mkSfx('back.mp3',      0.85);   // 削除 / ? OK / close
+      var sfxResult  = _mkSfx('mac-act.mp3',   0.9);    // 検証後の結果表示
+
+      function getBenchHistory(){
+        try{ var h = JSON.parse(localStorage.getItem(BENCH_HISTORY_KEY) || '[]'); return Array.isArray(h) ? h : []; }catch(e){ return []; }
+      }
+      function saveBenchResult(result){
+        var h = getBenchHistory();
+        h.unshift(result);
+        if(h.length > 50) h = h.slice(0, 50);
+        try{ localStorage.setItem(BENCH_HISTORY_KEY, JSON.stringify(h)); }catch(e){}
+      }
+      function deleteBenchAt(idx){
+        var h = getBenchHistory();
+        if(idx < 0 || idx >= h.length) return h;
+        h.splice(idx, 1);
+        try{ localStorage.setItem(BENCH_HISTORY_KEY, JSON.stringify(h)); }catch(e){}
+        return h;
+      }
+      function _fireHaptic(){
+        try{
+          if(window.haptic && window.haptic.confirm) haptic.confirm();
+          else if(window.iosHaptic && window.iosHaptic.confirm) iosHaptic.confirm();
+        }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(12);
+      }
+      function renderHistoryList(listEl, hist){
+        listEl.innerHTML = '';
+        if(!hist || hist.length === 0){
+          var empty = document.createElement('p');
+          empty.style.cssText = 'text-align:center;color:rgba(255,255,255,0.35);font-family:"SF Pro Display",-apple-system,sans-serif;font-size:0.9rem;padding:2rem 0;';
+          empty.textContent = '履歴はありません';
+          listEl.appendChild(empty);
+          return;
+        }
+        hist.forEach(function(item, idx){
+          var d = new Date(item.date);
+          var dateStr = d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+          var div = document.createElement('div');
+          div.className = 'nb-hist-item';
+          div.innerHTML = '<div class="nb-hist-item-left"><span class="nb-hist-item-score">' + (item.score || '—') + '</span><span class="nb-hist-item-type">' + (item.type === 'deep' ? 'Deep Benchmark' : 'Standard') + '</span></div><div class="nb-hist-item-right"><span class="nb-hist-item-date">' + dateStr + '</span><button class="nb-hist-item-del" aria-label="delete" data-idx="' + idx + '">削除</button></div>';
+          listEl.appendChild(div);
+        });
+        // Wire delete buttons
+        listEl.querySelectorAll('.nb-hist-item-del').forEach(function(btn){
+          btn.addEventListener('click', function(e){
+            e.stopPropagation();
+            sfxBackMp3();
+            _fireHaptic();
+            var idx = parseInt(btn.getAttribute('data-idx'), 10);
+            var item = btn.closest('.nb-hist-item');
+            // Fade-out the row then re-render
+            if(item){
+              item.style.transition = 'transform 0.3s '+BEZ+',opacity 0.3s '+BEZ+',max-height 0.35s '+BEZ+',margin 0.35s '+BEZ+',padding 0.35s '+BEZ;
+              item.style.overflow = 'hidden';
+              item.style.maxHeight = item.offsetHeight + 'px';
+              requestAnimationFrame(function(){
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(40px)';
+                item.style.maxHeight = '0px';
+                item.style.margin = '0';
+                item.style.padding = '0';
+              });
+            }
+            setTimeout(function(){
+              var h = deleteBenchAt(idx);
+              renderHistoryList(listEl, h);
+              // If no more history, close the history overlay
+              if(h.length === 0){
+                setTimeout(function(){ closeHistory(); }, 200);
+              }
+              // Also update the main "検証履歴を表示" button visibility
+              var histBtn = document.getElementById('nbHistBtn');
+              if(histBtn && h.length < 2) histBtn.classList.remove('nb-show');
+            }, 360);
+          });
+        });
+      }
+
+      // ── Open NeoBench ──
+      function openNeoBench(){
+        if(nbState.open) return;
+        nbState.open = true;
+        nbState.view = 'picker';
+        nbState.running = false;
+
+        var ov = document.getElementById('neobenchOverlay');
+        var bg = document.getElementById('neobenchBg');
+        var card = document.getElementById('neobenchCard');
+        var histBtn = document.getElementById('nbHistBtn');
+
+        // Reset views
+        document.getElementById('nbPickerView').style.display = '';
+        document.getElementById('nbRunningView').style.display = 'none';
+        document.getElementById('nbResultView').style.display = 'none';
+
+        // Show history button if 2+ results
+        var hist = getBenchHistory();
+        if(hist.length >= 2){ histBtn.classList.add('nb-show'); }
+        else{ histBtn.classList.remove('nb-show'); }
+
+        ov.classList.add('nb-visible');
+        card.classList.remove('nb-in','nb-out');
+
+        // Open sound (時計/設定から開く) — last.mp3 のみ
+        sfxOpen();
+
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          bg.classList.add('nb-dim');
+          card.classList.add('nb-in');
+        }); });
+      }
+
+      // ── Close NeoBench ──
+      function closeNeoBench(){
+        if(!nbState.open) return;
+        var bg = document.getElementById('neobenchBg');
+        var card = document.getElementById('neobenchCard');
+
+        bg.classList.remove('nb-dim');
+        card.classList.remove('nb-in');
+        card.classList.add('nb-out');
+        // Slide nbHistBtn down at the same time as the bottom bar
+        var hb = document.getElementById('nbHistBtn');
+        if(hb) hb.classList.remove('nb-show');
+
+        // SFX handled by specific button listener (sfxBack etc.) — not here
+        try{
+          if(window.haptic && window.haptic.confirm) haptic.confirm();
+          else if(window.iosHaptic && window.iosHaptic.confirm) iosHaptic.confirm();
+        }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(10);
+
+        nbState.running = false;
+
+        setTimeout(function(){
+          nbState.open = false;
+          var ov = document.getElementById('neobenchOverlay');
+          ov.classList.remove('nb-visible');
+          card.classList.remove('nb-out');
+
+          // Clean up any original benchmark overlays that may have been created
+          var orig = document.getElementById('benchmarkOverlay');
+          if(orig) orig.remove();
+          var origPicker = document.getElementById('benchPickerOverlay');
+          if(origPicker) origPicker.remove();
+          // Reset benchmark active flag
+          try{ window._benchmarkActive = false; }catch(e){}
+        }, 700);
+      }
+
+      // ── Run benchmark (intercept original) ──
+      function nbStartBench(deep){
+        nbState.running = true;
+        nbState.view = 'running';
+        document.getElementById('nbPickerView').style.display = 'none';
+        var runningView = document.getElementById('nbRunningView');
+        runningView.style.display = '';
+        runningView.classList.remove('nb-view-enter'); void runningView.offsetWidth; runningView.classList.add('nb-view-enter');
+        document.getElementById('nbResultView').style.display = 'none';
+        document.getElementById('nbProgressBar').style.width = '0%';
+        document.getElementById('nbStatusText').textContent = '準備中...';
+        document.getElementById('nbRunLabel').textContent = deep ? 'NEOBENCH DEEP' : 'NEOBENCH';
+
+        try{ if(window.haptic && window.haptic.confirm) haptic.confirm(); }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(10);
+        // SFX handled by the run/deep button listener (sfxRun / sfxDeep)
+
+        // Run the actual benchmark in a way that captures results
+        // We'll monitor for benchmarkOverlay creation and extract results
+        var resultCaptured = false;
+        var progressPoller = null;
+
+        // Poll for progress and results from the original benchmark overlay
+        progressPoller = setInterval(function(){
+          var bar = document.querySelector('#benchmarkOverlay #benchBar, #benchmarkOverlay .neo-progress-bar__fill');
+          if(bar){
+            var w = bar.style.width || '0%';
+            document.getElementById('nbProgressBar').style.width = w;
+          }
+          var status = document.querySelector('#benchmarkOverlay #benchStatus');
+          if(status && status.textContent){
+            document.getElementById('nbStatusText').textContent = status.textContent;
+          }
+
+          // Check for result (close button appears when done)
+          var closeBtn = document.getElementById('benchCloseBtn');
+          if(closeBtn && !resultCaptured){
+            resultCaptured = true;
+            clearInterval(progressPoller);
+            document.getElementById('nbProgressBar').style.width = '100%';
+
+            // Extract score from the overlay — pick the standalone number with the
+            // LARGEST font size (scores are visually biggest in the benchmark UI)
+            var overlayEl = document.getElementById('benchmarkOverlay');
+            var scoreText = '0';
+            var details = [];
+            if(overlayEl){
+              var allP = overlayEl.querySelectorAll('p, span, div, h1, h2, h3');
+              var candidates = [];
+              for(var i = 0; i < allP.length; i++){
+                var el = allP[i];
+                // Skip container nodes that have element children — only leaf text
+                var hasElChild = false;
+                for(var ch = 0; ch < el.children.length; ch++){
+                  if(el.children[ch].nodeType === 1){ hasElChild = true; break; }
+                }
+                if(hasElChild) continue;
+                var t = (el.textContent||'').trim().replace(/,/g,'');
+                // Pure number, 2-7 digits → candidate for score
+                if(/^\d{2,7}$/.test(t)){
+                  var cs = window.getComputedStyle(el);
+                  var fs = parseFloat(cs.fontSize) || 0;
+                  candidates.push({val: parseInt(t,10), fs: fs});
+                }
+                var raw = (el.textContent||'').trim();
+                if(/(CPU|GPU|Memory|メモリ|Graphics|Compute|Render|Score|FPS|ms)/i.test(raw) && raw.length < 100){
+                  details.push(raw);
+                }
+              }
+              // Sort: biggest font first, then biggest value
+              candidates.sort(function(a,b){ return (b.fs - a.fs) || (b.val - a.val); });
+              if(candidates.length > 0){ scoreText = String(candidates[0].val); }
+
+              var benchLine1 = document.getElementById('benchLine1');
+              var benchLine2 = document.getElementById('benchLine2');
+              if(benchLine1) details.unshift(benchLine1.textContent);
+              if(benchLine2) details.push(benchLine2.textContent);
+
+              // Hide original overlay
+              overlayEl.style.display = 'none';
+              overlayEl.style.opacity = '0';
+              overlayEl.style.pointerEvents = 'none';
+            }
+
+            // Save result
+            var resultObj = {
+              score: parseInt(scoreText) || 0,
+              type: deep ? 'deep' : 'standard',
+              details: details.slice(0, 8),
+              date: new Date().toISOString()
+            };
+            saveBenchResult(resultObj);
+
+            // Show result view
+            showNbResult(resultObj);
+          }
+        }, 300);
+
+        // Timeout safety
+        setTimeout(function(){
+          if(!resultCaptured){
+            clearInterval(progressPoller);
+            // If no result after 60s, try to capture whatever we can
+            var overlayEl = document.getElementById('benchmarkOverlay');
+            if(overlayEl){
+              var allText = overlayEl.innerText || '';
+              var nums = allText.match(/\d{2,6}/g);
+              var score = nums && nums.length > 0 ? parseInt(nums[nums.length - 1]) : 0;
+              var resultObj = { score: score, type: deep ? 'deep' : 'standard', details: [], date: new Date().toISOString() };
+              saveBenchResult(resultObj);
+              overlayEl.style.display = 'none';
+              showNbResult(resultObj);
+            } else {
+              // No overlay at all — show error
+              showNbResult({ score: 0, type: deep ? 'deep' : 'standard', details: ['ベンチマークがタイムアウトしました'], date: new Date().toISOString() });
+            }
+          }
+        }, 65000);
+
+        // Trigger the original benchmark:
+        // Step 1: Ensure the original picker exists (click benchHint to create it)
+        // Step 2: Click the appropriate button inside the hidden picker
+        function triggerOrigBench(){
+          var picker = window._nbOrigPicker || document.getElementById('benchPickerOverlay');
+          if(!picker){
+            // Picker not yet created — trigger benchHint to make game create it
+            _bhIntercepted = true; // prevent our capture handler from firing
+            var bh = document.getElementById('benchHint');
+            if(bh) bh.click();
+            _bhIntercepted = false;
+            // Wait for picker to appear
+            setTimeout(triggerOrigBench, 400);
+            return;
+          }
+
+          try{
+            if(deep){
+              var deepBtn = document.getElementById('benchDeepBtn') || picker.querySelector('#benchDeepBtn');
+              if(deepBtn){ deepBtn.click(); return; }
+            }
+            // Normal bench: find the button that's not deep/close/help
+            var btns = picker.querySelectorAll('button');
+            var clicked = false;
+            for(var i = 0; i < btns.length; i++){
+              var b = btns[i];
+              if(b.id === 'benchDeepBtn' || b.id === 'benchCloseBtn') continue;
+              var txt = (b.textContent || '').trim();
+              if(txt.indexOf('深') >= 0 || txt.indexOf('Deep') >= 0) continue;
+              if(txt.indexOf('閉') >= 0 || txt === '?' || txt === '×') continue;
+              if(txt.length === 0) continue;
+              // This should be the standard bench button
+              if(txt.indexOf('検証') >= 0 || txt.indexOf('Bench') >= 0 || txt.indexOf('Run') >= 0 || txt.indexOf('Start') >= 0){
+                b.click(); clicked = true; break;
+              }
+            }
+            if(!clicked){
+              // Last resort: click first non-special button
+              for(var j = 0; j < btns.length; j++){
+                if(btns[j].id !== 'benchDeepBtn' && btns[j].id !== 'benchCloseBtn'){
+                  var t2 = (btns[j].textContent||'').trim();
+                  if(t2.length > 0 && t2.indexOf('?') < 0 && t2.indexOf('×') < 0){
+                    btns[j].click(); break;
+                  }
+                }
+              }
+            }
+          }catch(e){
+            clearInterval(progressPoller);
+            showNbResult({ score: 0, type: deep ? 'deep' : 'standard', details: ['エラー: ' + (e.message||'')], date: new Date().toISOString() });
+          }
+        }
+        setTimeout(triggerOrigBench, 200);
+      }
+
+      function showNbResult(result){
+        nbState.view = 'result';
+        nbState.running = false;
+        document.getElementById('nbPickerView').style.display = 'none';
+        document.getElementById('nbRunningView').style.display = 'none';
+        var resultView = document.getElementById('nbResultView');
+        resultView.style.display = '';
+        resultView.classList.remove('nb-view-enter'); void resultView.offsetWidth; resultView.classList.add('nb-view-enter');
+        sfxResult();
+
+        document.getElementById('nbScoreValue').textContent = result.score || '—';
+        document.getElementById('nbResultTitle').textContent = result.type === 'deep' ? 'NEOBENCH DEEP' : 'NEOBENCH v2.0';
+
+        var detailsEl = document.getElementById('nbResultDetails');
+        detailsEl.innerHTML = '';
+        if(result.details && result.details.length > 0){
+          result.details.forEach(function(d){
+            if(d && d.trim()){
+              var p = document.createElement('p');
+              p.className = 'nb-result-detail';
+              p.textContent = d;
+              detailsEl.appendChild(p);
+            }
+          });
+        }
+
+        // Update history button
+        var hist = getBenchHistory();
+        var histBtn = document.getElementById('nbHistBtn');
+        if(hist.length >= 2) histBtn.classList.add('nb-show');
+      }
+
+      // ── History View ──
+      // Re-entry guard — prevents duplicate open/close animations firing
+      var _histAnimating = false;
+      var _histOpen = false;
+      function openHistory(){
+        if(_histAnimating || _histOpen) return; // prevent duplicate
+        var hist = getBenchHistory();
+        if(hist.length < 2) return;
+
+        var histEl = document.getElementById('neobenchHistory');
+        var bg = document.getElementById('nbHistBg');
+        var content = document.getElementById('nbHistContent');
+        var list = document.getElementById('nbHistList');
+
+        renderHistoryList(list, hist);
+
+        _histAnimating = true;
+        _histOpen = true;
+        histEl.classList.add('nb-visible');
+        content.classList.remove('nb-in');
+
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          bg.classList.add('nb-dim');
+          content.classList.add('nb-in');
+          setTimeout(function(){ _histAnimating = false; }, 520);
+        }); });
+
+        try{ if(window.haptic && window.haptic.confirm) haptic.confirm(); }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(10);
+      }
+
+      function closeHistory(){
+        if(!_histOpen || _histAnimating) return; // prevent duplicate
+        _histAnimating = true;
+        _histOpen = false;
+        var bg = document.getElementById('nbHistBg');
+        var content = document.getElementById('nbHistContent');
+        bg.classList.remove('nb-dim');
+        content.classList.remove('nb-in');
+        setTimeout(function(){
+          document.getElementById('neobenchHistory').classList.remove('nb-visible');
+          _histAnimating = false;
+        }, 500);
+      }
+
+      // ── Help View ──
+      function openHelp(){
+        var helpEl = document.getElementById('neobenchHelp');
+        var bg = document.getElementById('nbHelpBg');
+        var card = document.getElementById('nbHelpCard');
+
+        helpEl.classList.add('nb-visible');
+        card.classList.remove('nb-in');
+
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          bg.classList.add('nb-dim');
+          card.classList.add('nb-in');
+        }); });
+      }
+
+      function closeHelp(){
+        var bg = document.getElementById('nbHelpBg');
+        var card = document.getElementById('nbHelpCard');
+        bg.classList.remove('nb-dim');
+        card.classList.remove('nb-in');
+        setTimeout(function(){
+          document.getElementById('neobenchHelp').classList.remove('nb-visible');
+        }, 400);
+      }
+
+      // ── Event listeners ──
+      document.getElementById('nbRunBtn').addEventListener('click', function(){ sfxRun(); nbStartBench(false); });
+      document.getElementById('nbDeepBtn').addEventListener('click', function(){ sfxDeep(); nbStartBench(true); });
+      document.getElementById('nbBackBtn').addEventListener('click', function(){
+        // ALWAYS play sfx + haptic — regardless of running state or repeat count
+        sfxBack();
+        _fireHaptic();
+        // But only actually close if not mid-benchmark
+        if(nbState.running) return;
+        closeNeoBench();
+      });
+      document.getElementById('nbHelpBtn').addEventListener('click', function(){ sfxHelp(); openHelp(); });
+      document.getElementById('nbCloseResultBtn').addEventListener('click', function(){
+        sfxBack();
+        // Click original close button if it exists
+        var origClose = document.getElementById('benchCloseBtn');
+        if(origClose) origClose.click();
+        // Clean up original overlays
+        setTimeout(function(){
+          var orig = document.getElementById('benchmarkOverlay');
+          if(orig) orig.remove();
+          var origPicker = document.getElementById('benchPickerOverlay');
+          if(origPicker) origPicker.remove();
+          document.querySelectorAll('.neo-overlay').forEach(function(el){ el.remove(); });
+        }, 100);
+        closeNeoBench();
+      });
+      document.getElementById('nbHistBtn').addEventListener('click', function(){ sfxHistOpen(); openHistory(); });
+      document.getElementById('nbHistClose').addEventListener('click', function(){ sfxBack(); closeHistory(); });
+      document.getElementById('nbHelpClose').addEventListener('click', function(){ sfxBackMp3(); closeHelp(); });
+      document.getElementById('neobenchBg').addEventListener('click', function(){
+        if(nbState.running) return;
+        sfxBack();
+        closeNeoBench();
+      });
+      document.getElementById('nbHelpBg').addEventListener('click', function(){ sfxBackMp3(); closeHelp(); });
+
+      // ── Intercept NeoBench via DOM detection ──
+      // showBenchmarkPicker is inside new Function() scope — NOT on window.
+      // Strategy: 1) Intercept benchHint click  2) Watch for benchPickerOverlay DOM node
+
+      // 1) Intercept benchHint: capture-phase listener that prevents the game's handler
+      var _bhIntercepted = false;
+      var _interceptBH = setInterval(function(){
+        var bh = document.getElementById('benchHint');
+        if(!bh) return;
+        clearInterval(_interceptBH);
+        bh.addEventListener('click', function(e){
+          if(_bhIntercepted) return; // prevent recursion
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          openNeoBench();
+        }, true); // capture phase — fires before game's handler
+      }, 200);
+
+      // 2) Watch for benchPickerOverlay — ID-based only, no text match (avoids false trigger)
+      function hideOrig(node){
+        node.style.cssText += ';position:fixed!important;top:-9999px!important;left:-9999px!important;opacity:0!important;pointer-events:none!important;z-index:-1!important;width:1px!important;height:1px!important;';
+      }
+      var _pickerObserver = new MutationObserver(function(muts){
+        muts.forEach(function(m){
+          m.addedNodes.forEach(function(node){
+            if(!node.nodeType || node.nodeType !== 1) return;
+            // Only trigger on EXACT id match — no text heuristics (prevents false open)
+            if(node.id === 'benchPickerOverlay'){
+              hideOrig(node);
+              window._nbOrigPicker = node;
+              if(!nbState.open) openNeoBench();
+              return;
+            }
+            if(node.id === 'benchmarkOverlay'){
+              hideOrig(node);
+              return;
+            }
+          });
+        });
+      });
+      _pickerObserver.observe(document.body, {childList: true});
+
+      // Expose for external triggers (e.g., settings → NeoBench bridge)
+      window.__openNeoBench = openNeoBench;
+
+      // ── Bridge: Settings dialog → NeoBench ──
+      // Any button whose text matches NeoBench (but outside our own overlays
+      // and not the clock/benchHint/welcome-settings) closes its parent
+      // overlay/dialog and opens NeoBench.
+      function isInsideNbOwn(el){
+        return !!(el.closest && (el.closest('#neobenchOverlay') || el.closest('#neobenchHistory') || el.closest('#neobenchHelp')));
+      }
+      function closeAncestorOverlay(btn){
+        // Walk up, find first fixed/absolute overlay container with high z-index
+        var node = btn.parentElement;
+        var dialog = null;
+        while(node && node !== document.body){
+          var cs = window.getComputedStyle(node);
+          var z = parseInt(cs.zIndex) || 0;
+          if((cs.position === 'fixed' || cs.position === 'absolute') && (z >= 100 || node.id === 'settingsOverlay' || /overlay|modal|dialog|settings/i.test(node.id||'') || /overlay|modal|dialog|settings/i.test(node.className||''))){
+            dialog = node;
+            break;
+          }
+          node = node.parentElement;
+        }
+        if(!dialog) return false;
+        // Try clicking its close button first
+        var closeBtn = dialog.querySelector('[aria-label="close" i], .close, .close-btn, [data-close], button[id*="lose" i]');
+        if(!closeBtn){
+          // Find a button whose text is × / 閉 / ✕ / Close
+          var btns = dialog.querySelectorAll('button');
+          for(var i=0;i<btns.length;i++){
+            var t = (btns[i].textContent||'').trim();
+            if(t === '×' || t === '✕' || t === 'x' || t === 'X' || /閉|Close|戻る|back/i.test(t)){ closeBtn = btns[i]; break; }
+          }
+        }
+        if(closeBtn){ try{ closeBtn.click(); }catch(e){} }
+        else {
+          // Fallback: hide directly with a short fade
+          dialog.style.transition = 'opacity 0.25s ease';
+          dialog.style.opacity = '0';
+          setTimeout(function(){ dialog.style.display = 'none'; dialog.style.pointerEvents = 'none'; }, 260);
+        }
+        return true;
+      }
+      document.addEventListener('click', function(e){
+        var btn = e.target.closest && e.target.closest('button, [role="button"], a, .menu-item, li');
+        if(!btn) return;
+        if(isInsideNbOwn(btn)) return;
+        // Skip known triggers already wired
+        if(btn.id === 'benchHint' || btn.id === 'neoClock' || btn.id === 'welcomeSettingsBtn') return;
+        if(btn.closest && btn.closest('#welcomeScreen')) return; // welcome-screen buttons aren't settings
+        var txt = (btn.textContent||'').trim();
+        if(!txt) return;
+        // Match NeoBench label variants (but avoid "検証する" which is our own primary btn — already filtered by isInsideNbOwn)
+        if(!/neobench|ネオベンチ|ベンチマーク/i.test(txt)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeAncestorOverlay(btn);
+        setTimeout(function(){ try{ openNeoBench(); }catch(err){} }, 280);
+      }, true);
+
+    }();
+    </script>
+    <script data-neo-patch="2">
+    // === PAUSE GATE + HAPTIC FIX ===
+    !function(){
+
+      // ── 1. Gate pauseGame: ONLY allowed from specific triggers ──
+      var _gateReady = setInterval(function(){
+        if(!window.__gameReady || typeof window.pauseGame !== 'function') return;
+        clearInterval(_gateReady);
+
+        var _origPause = window.pauseGame;
+        var _allowPause = false;
+
+        window.pauseGame = function(){
+          if(!_allowPause) return;
+          _allowPause = false;
+          return _origPause.apply(this, arguments);
+        };
+
+        // ALLOWED: Escape key (capture phase — fires before game's keydown)
+        document.addEventListener('keydown', function(e){
+          if(e.key === 'Escape' || e.keyCode === 27) _allowPause = true;
+        }, true);
+
+        // ALLOWED: visibilitychange when hidden (OS switch / home screen)
+        document.addEventListener('visibilitychange', function(){
+          if(document.hidden) _allowPause = true;
+        }, true);
+
+        // ALLOWED: HUD score area tap
+        var _hud = document.querySelector('#gameUI .hud');
+        if(_hud){
+          _hud.addEventListener('touchstart', function(){ _allowPause = true; }, true);
+          _hud.addEventListener('click', function(){ _allowPause = true; }, true);
+        }
+
+        // ALLOWED: Lives hearts bar tap
+        var _lives = document.getElementById('livesBar');
+        if(_lives){
+          _lives.addEventListener('touchstart', function(){ _allowPause = true; }, true);
+          _lives.addEventListener('click', function(){ _allowPause = true; }, true);
+        }
+
+        // BLOCKED (by not setting flag): blur, mouseleave, pointerlockchange, etc.
+
+        // ── 2. Block gameLagOverlay (performance-triggered pause) ──
+        new MutationObserver(function(muts){
+          for(var i = 0; i < muts.length; i++){
+            var added = muts[i].addedNodes;
+            for(var j = 0; j < added.length; j++){
+              if(added[j].id === 'gameLagOverlay'){
+                added[j].remove();
+              }
+            }
+          }
+        }).observe(document.body, {childList: true});
+
+      }, 100);
+
+      // ── 3. Haptic on iframe intro overlay ("The Beast") ──
+      var _ov = document.getElementById('iframeIntroOverlay');
+      if(_ov){
+        function _ifrHaptic(){
+          try{
+            if(window.haptic && window.haptic.confirm) window.haptic.confirm();
+            else if(window.iosHaptic && window.iosHaptic.confirm) window.iosHaptic.confirm();
+          }catch(e){}
+          if(navigator.vibrate) navigator.vibrate([10, 30, 10]);
+        }
+        _ov.addEventListener('touchstart', _ifrHaptic, {passive: true});
+        _ov.addEventListener('click', _ifrHaptic);
+      }
+
+    }();
+    </script>
+    <script data-neo-patch="in-game-state">
+    // Toggle body.in-game based on #gameUI visibility.
+    // CSS rule body.in-game * { backdrop-filter:none } kills all blur during play.
+    !function(){
+      function _isPlaying(){
+        try{
+          var ui = document.getElementById('gameUI');
+          if(!ui) return false;
+          if(ui.style.display === 'none' || ui.style.display === '') {
+            // Fall back to GameState if available
+            try{ if(window.GameState && window.GameState.gameStarted) return true; }catch(e){}
+            return false;
+          }
+          return true;
+        }catch(e){ return false; }
+      }
+      function _sync(){
+        try{
+          var cls = document.body.classList;
+          if(_isPlaying()){ if(!cls.contains('in-game')) cls.add('in-game'); }
+          else { if(cls.contains('in-game')) cls.remove('in-game'); }
+        }catch(e){}
+      }
+      _sync();
+      try{
+        var ui = document.getElementById('gameUI');
+        if(ui){
+          new MutationObserver(_sync).observe(ui, {attributes: true, attributeFilter: ['style','class']});
+        }
+      }catch(e){}
+      // Low-frequency poll as safety net (GameState changes without gameUI style change)
+      setInterval(_sync, 500);
+    }();
+    </script>
+    <script data-neo-patch="click-sfx">
+    // === Custom click sounds — 始める / neobench = activate.mp3, bench complete = mac-act.mp3 ===
+    // Crash-safe: every audio op wrapped in try/catch. Missing assets fail silently.
+    !function(){
+      var _activate = null;
+      var _macAct = null;
+
+      function _mk(src){
+        try{
+          var a = new Audio(src);
+          a.preload = 'auto';
+          a.volume = 0.9;
+          try{ a.load(); }catch(e){}
+          return a;
+        }catch(e){ return null; }
+      }
+      try{ _activate = _mk('activate.mp3'); }catch(e){}
+      try{ _macAct = _mk('mac-act.mp3'); }catch(e){}
+
+      function _play(audio){
+        if(!audio) return;
+        try{
+          // Clone for overlapping plays without cutting off (but keep a cheap path first)
+          audio.currentTime = 0;
+          var p = audio.play();
+          if(p && typeof p.catch === 'function') p.catch(function(){});
+        }catch(e){
+          try{
+            var clone = audio.cloneNode(true);
+            clone.volume = audio.volume;
+            var p2 = clone.play();
+            if(p2 && typeof p2.catch === 'function') p2.catch(function(){});
+          }catch(e2){}
+        }
+      }
+
+      function _playActivate(){ try{ _play(_activate); }catch(e){} }
+
+      // ── 始める button: activate.mp3 on every press (bind ONCE; no pointerdown+click double-fire) ──
+      function _bindStart(){
+        try{
+          var sb = document.getElementById('welcomeStartButton');
+          if(sb && !sb._sfxBound){
+            sb._sfxBound = true;
+            // Single listener (click, capture) — prevents double-play from pointerdown+click
+            sb.addEventListener('click', _playActivate, true);
+          }
+        }catch(e){}
+      }
+
+      // NeoBench 用の音はすべて neobench-redesign 側 (sfxOpen/sfxRun/sfxDeep/sfxResult ...) で扱うため、
+      // ここでは NeoBench 関連の binding を行わない (activate.mp3 が重複するのを防ぐ)。
+
+      // Retry bindings until game JS has rendered everything
+      function _tryAll(){
+        try{ _bindStart(); }catch(e){}
+      }
+      _tryAll();
+      var _iv = setInterval(_tryAll, 500);
+      setTimeout(function(){ try{ clearInterval(_iv); }catch(e){} }, 60000);
+
+      // Global MutationObserver catches dynamically added result/run buttons
+      try{
+        new MutationObserver(function(){ _tryAll(); })
+          .observe(document.body, {childList: true, subtree: true});
+      }catch(e){}
+
+      // Unlock audio on first user gesture (needed on iOS Safari)
+      function _unlock(){
+        try{ if(_activate){ _activate.play().then(function(){ _activate.pause(); _activate.currentTime = 0; }).catch(function(){}); } }catch(e){}
+        try{ if(_macAct){ _macAct.play().then(function(){ _macAct.pause(); _macAct.currentTime = 0; }).catch(function(){}); } }catch(e){}
+        ['touchstart','pointerdown','click','keydown'].forEach(function(ev){
+          try{ document.removeEventListener(ev, _unlock, true); }catch(e){}
+        });
+      }
+      ['touchstart','pointerdown','click','keydown'].forEach(function(ev){
+        try{ document.addEventListener(ev, _unlock, true); }catch(e){}
+      });
+    }();
+    </script>
+    <script data-neo-patch="input-shim">
+    // === INPUT SHIM: Mac trackpad → arrows/jump, Shift = 1.3× speed ===
+    !function(){
+      // ── Detect "in-game" heuristic: no menu/overlay visible ──
+      function _isMenuOrOverlayActive(){
+        var ids = ['welcomeScreen','introScreen','celestialTransit','neobenchOverlay','neobenchHistory','neobenchHelp','winMenu','lostMenu','editorMenu','iframeIntroOverlay'];
+        for(var i=0;i<ids.length;i++){
+          var el = document.getElementById(ids[i]);
+          if(!el) continue;
+          var cs = window.getComputedStyle(el);
+          if(cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.01){
+            // welcomeScreen with display:none → not active; with display:flex → active menu
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function _keyCodeFor(k){
+        return k === 'ArrowLeft' ? 37 : k === 'ArrowRight' ? 39 : k === 'ArrowUp' ? 38 : k === 'ArrowDown' ? 40 : k === ' ' ? 32 : 0;
+      }
+      function _dispatchKey(key, duration){
+        duration = duration || 90;
+        var code = (key === ' ') ? 'Space' : key;
+        var kc = _keyCodeFor(key);
+        try{
+          var down = new KeyboardEvent('keydown', {key:key, code:code, keyCode:kc, which:kc, bubbles:true, cancelable:true});
+          window.dispatchEvent(down); document.dispatchEvent(down);
+        }catch(e){}
+        setTimeout(function(){
+          try{
+            var up = new KeyboardEvent('keyup', {key:key, code:code, keyCode:kc, which:kc, bubbles:true, cancelable:true});
+            window.dispatchEvent(up); document.dispatchEvent(up);
+          }catch(e){}
+        }, duration);
+      }
+
+      // ── 1. Mac trackpad (wheel) → arrow keys / jump ──
+      // Accumulate delta; when threshold crossed, fire a synthetic key.
+      var _wx = 0, _wy = 0, _lastFire = 0;
+      var WHEEL_THRESH_X = 24;   // horizontal trackpad movement to trigger left/right
+      var WHEEL_THRESH_Y = 28;   // vertical swipe-up to trigger jump
+      var FIRE_COOLDOWN = 110;   // min ms between fires (prevents flood)
+      var _resetT = null;
+
+      function _onWheel(e){
+        if(_isMenuOrOverlayActive()) return; // don't steal scroll in menus
+        _wx += e.deltaX; _wy += e.deltaY;
+        var now = Date.now();
+        if(now - _lastFire < FIRE_COOLDOWN) { // cool-down
+          clearTimeout(_resetT);
+          _resetT = setTimeout(function(){ _wx = 0; _wy = 0; }, 180);
+          return;
+        }
+        if(Math.abs(_wx) > Math.abs(_wy)){
+          if(_wx < -WHEEL_THRESH_X){ _dispatchKey('ArrowLeft');  _wx = 0; _wy = 0; _lastFire = now; try{ e.preventDefault(); }catch(err){} }
+          else if(_wx > WHEEL_THRESH_X){ _dispatchKey('ArrowRight'); _wx = 0; _wy = 0; _lastFire = now; try{ e.preventDefault(); }catch(err){} }
+        } else {
+          // Swipe up on trackpad = deltaY < 0 → jump (space)
+          if(_wy < -WHEEL_THRESH_Y){ _dispatchKey(' '); _wx = 0; _wy = 0; _lastFire = now; try{ e.preventDefault(); }catch(err){} }
+        }
+        clearTimeout(_resetT);
+        _resetT = setTimeout(function(){ _wx = 0; _wy = 0; }, 180);
+      }
+      // Bind wheel on window (passive:false so preventDefault works) — this
+      // catches trackpad gestures anywhere on the game canvas.
+      window.addEventListener('wheel', _onWheel, {passive:false});
+
+      // ── 2. Touch swipe hint: ensure mobile swipes pass through to canvas ──
+      // Game already binds touchstart/touchmove/touchend natively; here we just
+      // make sure no overlay eats them in-game.
+      var _style = document.createElement('style');
+      _style.textContent = 'canvas{touch-action:none;-ms-touch-action:none;}';
+      document.head.appendChild(_style);
+
+      // ── 3. Shift = 1.3× game speed ──
+      // Patch performance.now() so the game's dt calculation is 1.3× larger
+      // while Shift is held. Since the game integrates motion by dt, this
+      // effectively speeds up everything by 30%.
+      var _shiftHeld = false;
+      var _origNow = performance.now.bind(performance);
+      var _lastReal = _origNow();
+      var _offset = 0;
+      var _patchedNow = function(){
+        var real = _origNow();
+        var dtReal = real - _lastReal;
+        _lastReal = real;
+        if(_shiftHeld && dtReal > 0 && dtReal < 200){
+          _offset += dtReal * 0.3; // extra 30% perceived time elapsed
+        }
+        return real + _offset;
+      };
+      try{ performance.now = _patchedNow; }catch(e){}
+
+      window.addEventListener('keydown', function(e){
+        if(e.key === 'Shift' || e.keyCode === 16) _shiftHeld = true;
+      }, true);
+      window.addEventListener('keyup', function(e){
+        if(e.key === 'Shift' || e.keyCode === 16) _shiftHeld = false;
+      }, true);
+      // Safety: lose shift state on blur (user tabs away)
+      window.addEventListener('blur', function(){ _shiftHeld = false; });
+    }();
+    </script>
+
+    <!-- ================================================================= -->
+    <!-- NEOSAURS v4 — View Modes (全体 / FPS) + iOS16/Ventura audio        -->
+    <!-- + WorldMap transition hardening + global haptic wiring             -->
+    <!-- ================================================================= -->
+    <style id="neo-view-mode-styles">
+      /* View-mode chooser + settings shared iOS-pop look */
+      .vm-overlay{
+        position:fixed; inset:0; width:100%; height:100vh; height:100dvh;
+        background:rgba(0,0,0,0.55); backdrop-filter:blur(28px) saturate(180%);
+        -webkit-backdrop-filter:blur(28px) saturate(180%);
+        display:none; justify-content:center; align-items:center; flex-direction:column;
+        z-index:100020; opacity:0;
+        transition:opacity 0.5s cubic-bezier(.77,0,.18,1);
+        padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+      }
+      .vm-overlay.vm-show{ display:flex; opacity:1; }
+      .vm-overlay .vm-card{
+        text-align:center; color:#fff;
+        transform:scale(.82); opacity:0;
+        transition:transform .6s cubic-bezier(.77,0,.18,1), opacity .6s cubic-bezier(.77,0,.18,1);
+        max-width:96vw; padding:1.6rem 1rem 2rem;
+      }
+      .vm-overlay.vm-show .vm-card{ transform:scale(1); opacity:1; }
+      .vm-title{
+        font-family:"SF Pro Display",-apple-system,sans-serif;
+        font-weight:200; font-size:2.2rem; color:#fff; letter-spacing:-0.02em;
+        margin:0 0 .3rem; line-height:1.15;
+      }
+      .vm-sub{
+        font-family:"SF Pro Display",-apple-system,sans-serif;
+        font-weight:300; font-size:0.95rem; color:rgba(255,255,255,.6);
+        margin:0 0 1.8rem;
+      }
+      .vm-choices{
+        display:flex; gap:1.1rem; justify-content:center; align-items:stretch;
+        flex-wrap:wrap;
+      }
+      .vm-choice{
+        -webkit-appearance:none; appearance:none;
+        background:rgba(255,255,255,.06);
+        backdrop-filter:blur(24px) saturate(180%);
+        -webkit-backdrop-filter:blur(24px) saturate(180%);
+        border:1px solid rgba(255,255,255,.14);
+        border-radius:28px;
+        padding:1.2rem 1rem 1.1rem;
+        width:clamp(150px, 42vw, 190px);
+        cursor:pointer;
+        color:#fff;
+        font-family:"SF Pro Display",-apple-system,sans-serif;
+        transition:transform .45s cubic-bezier(.77,0,.18,1), box-shadow .3s ease, border-color .3s ease, background .3s ease;
+        box-shadow:inset 1px -.8px .5px rgb(255 255 255 / 60%), inset -1.6px 1.5px 1px rgb(255 255 255 / 50%), 0 8px 30px rgba(0,0,0,.35);
+        -webkit-tap-highlight-color:transparent;
+        display:flex; flex-direction:column; align-items:center; gap:.7rem;
+      }
+      .vm-choice:active{ transform:scale(.94); }
+      .vm-choice.vm-selected{
+        border-color:rgba(0,255,136,.55);
+        background:rgba(0,255,136,.10);
+        box-shadow:inset 1px -.8px .5px rgb(255 255 255 / 60%), inset -1.6px 1.5px 1px rgb(255 255 255 / 50%), 0 0 0 3px rgba(0,255,136,.25), 0 10px 36px rgba(0,0,0,.4);
+      }
+      .vm-ic{ width:88px; height:88px; display:block; }
+      .vm-ic.vm-ic-lg{ width:120px; height:120px; }
+      .vm-label{
+        font-size:1.15rem; font-weight:500; letter-spacing:.02em;
+      }
+      .vm-label-sub{
+        font-size:.72rem; color:rgba(255,255,255,.55); line-height:1.3; max-width:180px;
+      }
+      .vm-confirm{
+        margin-top:1.6rem;
+        padding:.8rem 2.4rem;
+        background:rgba(0,255,136,.18);
+        border:none; border-radius:88px;
+        color:#fff; font-family:"SF Pro Display",-apple-system,sans-serif;
+        font-weight:500; font-size:1rem;
+        cursor:pointer;
+        -webkit-tap-highlight-color:transparent;
+        transition:transform .5s cubic-bezier(.77,0,.18,1), background .3s ease;
+        box-shadow:inset 1px -.8px .5px rgb(255 255 255 / 60%), inset -1.6px 1.5px 1px rgb(255 255 255 / 50%);
+      }
+      .vm-confirm:active{ transform:scale(.94); background:rgba(0,255,136,.28); }
+      .vm-confirm[disabled]{ opacity:.5; pointer-events:none; }
+      /* Settings sheet */
+      .vm-settings-sheet{
+        position:relative; z-index:2;
+        background:rgba(30,30,35,.88);
+        backdrop-filter:blur(36px) saturate(180%);
+        -webkit-backdrop-filter:blur(36px) saturate(180%);
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:28px;
+        padding:1.4rem 1.3rem 1.2rem;
+        width:min(92vw, 420px);
+        box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+        color:#fff;
+        text-align:left;
+      }
+      .vm-sheet-title{
+        font-family:"SF Pro Display",-apple-system,sans-serif;
+        font-weight:500; font-size:1.25rem; margin:0 0 1rem;
+        text-align:center;
+      }
+      .vm-row{
+        display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+        padding:.6rem .3rem;
+        border-top:1px solid rgba(255,255,255,.08);
+      }
+      .vm-row:first-of-type{ border-top:none; }
+      .vm-row-label{
+        font-family:"SF Pro Display",-apple-system,sans-serif;
+        font-size:.95rem; color:#fff;
+      }
+      .vm-row-sub{
+        font-size:.7rem; color:rgba(255,255,255,.5); margin-top:2px;
+      }
+      .vm-seg{
+        display:inline-flex; background:rgba(120,120,128,.24);
+        border-radius:10px; padding:2px; gap:2px;
+      }
+      .vm-seg button{
+        -webkit-appearance:none; appearance:none;
+        background:transparent; border:none; color:rgba(255,255,255,.8);
+        font-family:"SF Pro Display",-apple-system,sans-serif; font-size:.82rem;
+        padding:.4rem .9rem; border-radius:8px; cursor:pointer;
+        -webkit-tap-highlight-color:transparent;
+        transition:background .3s ease, color .3s ease, transform .3s ease;
+      }
+      .vm-seg button.vm-seg-active{
+        background:rgba(255,255,255,.95); color:#111;
+        box-shadow:0 1px 2px rgba(0,0,0,.2);
+      }
+      .vm-seg button:active{ transform:scale(.94); }
+      .vm-close{
+        display:block; margin:1.3rem auto 0;
+        padding:.55rem 2rem; background:rgba(255,255,255,.08); border:none;
+        border-radius:88px; color:#fff; font-size:.9rem;
+        font-family:"SF Pro Display",-apple-system,sans-serif; cursor:pointer;
+        -webkit-tap-highlight-color:transparent;
+        transition:transform .4s cubic-bezier(.77,0,.18,1), background .3s ease;
+        box-shadow:inset 1px -.8px .5px rgb(255 255 255 / 55%), inset -1.6px 1.5px 1px rgb(255 255 255 / 45%);
+      }
+      .vm-close:active{ transform:scale(.94); }
+      @media (max-width:480px){
+        .vm-title{ font-size:1.8rem; }
+        .vm-choice{ width:44vw; padding:1rem .7rem .9rem; }
+        .vm-ic{ width:72px; height:72px; }
+        .vm-ic.vm-ic-lg{ width:96px; height:96px; }
+      }
+    </style>
+
+    <!-- First-run view-mode chooser -->
+    <div id="vmChooser" class="vm-overlay" role="dialog" aria-modal="true" aria-label="視点を選ぶ">
+      <div class="vm-card">
+        <h1 class="vm-title sf-font">視点を選ぶ</h1>
+        <p class="vm-sub sf-font">あとで設定から変えられます</p>
+        <div class="vm-choices">
+          <button class="vm-choice vm-selected" data-vm="overview" type="button" aria-label="全体視点">
+            <svg class="vm-ic vm-ic-lg" viewBox="0 0 240 160" aria-hidden="true">
+              <defs>
+                <linearGradient id="vmGradBody" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#d8dadc"/><stop offset="1" stop-color="#9fa2a6"/>
+                </linearGradient>
+                <linearGradient id="vmGradField" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#b5f7a9"/><stop offset=".5" stop-color="#fbe2b0"/><stop offset="1" stop-color="#f3c9cf"/>
+                </linearGradient>
+                <linearGradient id="vmRainbow" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#00e0ff"/><stop offset=".25" stop-color="#58ea76"/><stop offset=".5" stop-color="#f0c94a"/><stop offset=".75" stop-color="#ff5e6c"/><stop offset="1" stop-color="#c642ff"/>
+                </linearGradient>
+              </defs>
+              <!-- laptop/trackpad body -->
+              <path d="M30 110 L210 110 L230 140 L10 140 Z" fill="url(#vmGradBody)" opacity=".95"/>
+              <!-- circular viewport with landscape -->
+              <circle cx="120" cy="80" r="46" fill="url(#vmGradField)"/>
+              <rect x="110" y="54" width="6" height="22" rx="2" fill="#fff"/>
+              <rect x="128" y="58" width="12" height="30" rx="3" fill="#fff"/>
+              <rect x="100" y="92" width="10" height="10" rx="2" fill="#fff"/>
+              <circle cx="120" cy="88" r="3.5" fill="#fff"/>
+              <circle cx="120" cy="80" r="46" fill="none" stroke="url(#vmRainbow)" stroke-width="3"/>
+            </svg>
+            <div class="vm-label sf-font">全体</div>
+            <div class="vm-label-sub sf-font">滑らかに全体像が見える</div>
+          </button>
+          <button class="vm-choice" data-vm="fps" type="button" aria-label="FPS視点">
+            <svg class="vm-ic vm-ic-lg" viewBox="0 0 240 160" aria-hidden="true">
+              <defs>
+                <radialGradient id="vmFpsBg" cx="50%" cy="60%" r="75%">
+                  <stop offset="0" stop-color="#c6f1b4"/><stop offset=".55" stop-color="#7ab8f0"/><stop offset="1" stop-color="#1a4f8a"/>
+                </radialGradient>
+                <linearGradient id="vmFpsRing" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#00e0ff"/><stop offset=".5" stop-color="#ff5e6c"/><stop offset="1" stop-color="#c642ff"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="240" height="160" rx="10" fill="url(#vmFpsBg)"/>
+              <!-- pillars (perspective) -->
+              <rect x="98" y="40"  width="8"  height="55" rx="2" fill="#fff" opacity=".88"/>
+              <rect x="145" y="60" width="16" height="55" rx="3" fill="#fff" opacity=".92"/>
+              <rect x="70"  y="90" width="13" height="22" rx="2" fill="#fff" opacity=".9"/>
+              <!-- FPS reticle rings -->
+              <circle cx="120" cy="112" r="12" fill="none" stroke="url(#vmFpsRing)" stroke-width="2.5"/>
+              <circle cx="127" cy="118" r="9"  fill="none" stroke="url(#vmFpsRing)" stroke-width="2"/>
+              <circle cx="134" cy="114" r="7"  fill="none" stroke="url(#vmFpsRing)" stroke-width="1.8"/>
+            </svg>
+            <div class="vm-label sf-font">FPS</div>
+            <div class="vm-label-sub sf-font">今までの一人称視点</div>
+          </button>
+        </div>
+        <button class="vm-confirm sf-font" id="vmConfirmBtn" type="button">決定</button>
+      </div>
+    </div>
+
+    <!-- Settings sheet (opened by welcomeSettingsBtn) -->
+    <div id="vmSettings" class="vm-overlay" role="dialog" aria-modal="true" aria-label="設定">
+      <div class="vm-card">
+        <div class="vm-settings-sheet">
+          <h2 class="vm-sheet-title sf-font">設定</h2>
+          <div class="vm-row">
+            <div>
+              <div class="vm-row-label sf-font">視点モード</div>
+              <div class="vm-row-sub sf-font">全体=滑らかな俯瞰 / FPS=一人称</div>
+            </div>
+            <div class="vm-seg" role="tablist" aria-label="view-mode">
+              <button type="button" data-vm-seg="overview" class="vm-seg-active sf-font">全体</button>
+              <button type="button" data-vm-seg="fps" class="sf-font">FPS</button>
+            </div>
+          </div>
+          <button class="vm-close sf-font" id="vmSettingsCloseBtn" type="button">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <script data-neo-patch="view-mode-system">
+    // === View-mode system + audio unlock + haptic wiring + worldmap hardening ===
+    !function(){
+      var LS_MODE = 'neo_viewMode';
+      var LS_SEEN = 'neo_viewModeChosen';
+      var BEZ = 'cubic-bezier(.77,0,.18,1)';
+
+      function readMode(){
+        try{ var v = localStorage.getItem(LS_MODE); if(v === 'overview' || v === 'fps') return v; }catch(e){}
+        return 'overview'; // default per spec
+      }
+      function writeMode(m){
+        try{ localStorage.setItem(LS_MODE, m); }catch(e){}
+        try{ localStorage.setItem(LS_SEEN, '1'); }catch(e){}
+      }
+      function hasChosen(){
+        try{ return !!localStorage.getItem(LS_SEEN); }catch(e){ return false; }
+      }
+
+      window.__viewMode = readMode();
+      window.__viewModeTarget = (window.__viewMode === 'overview') ? 1 : 0;
+      window.__viewModeBlend  = window.__viewModeTarget; // start matched (no startup animation)
+
+      function setMode(m, silent){
+        if(m !== 'overview' && m !== 'fps') return;
+        window.__viewMode = m;
+        window.__viewModeTarget = (m === 'overview') ? 1 : 0;
+        writeMode(m);
+        if(!silent){ try{ window.haptic && window.haptic.selection && window.haptic.selection(); }catch(e){} }
+        // Sync settings UI
+        document.querySelectorAll('[data-vm-seg]').forEach(function(b){
+          b.classList.toggle('vm-seg-active', b.getAttribute('data-vm-seg') === m);
+        });
+        document.querySelectorAll('.vm-choice').forEach(function(b){
+          b.classList.toggle('vm-selected', b.getAttribute('data-vm') === m);
+        });
+      }
+      window.__setViewMode = setMode;
+
+      // ── 1. Haptic helper (uses window.haptic defined in head) ──
+      function hapTap(){ try{ window.haptic && window.haptic(); }catch(e){} }
+      function hapConf(){ try{ window.haptic && window.haptic.confirm && window.haptic.confirm(); }catch(e){} }
+      function hapSel() { try{ window.haptic && window.haptic.selection && window.haptic.selection(); }catch(e){} }
+
+      // ── 2. iOS Safari / Ventura audio unlock: single shared WebAudio context +
+      //      warm up every HTMLAudioElement on first user gesture. Preserves all
+      //      existing sounds. ──
+      var _audioUnlocked = false;
+      function _unlockAudio(){
+        if(_audioUnlocked) return; _audioUnlocked = true;
+        try{
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if(AC){
+            var ctx = window.__neoAudioCtx || new AC();
+            window.__neoAudioCtx = ctx;
+            if(ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(function(){});
+            try{
+              var b = ctx.createBuffer(1, 1, 22050);
+              var s = ctx.createBufferSource();
+              s.buffer = b; s.connect(ctx.destination); s.start(0);
+            }catch(e){}
+          }
+        }catch(e){}
+        // Warm all <audio> elements (including those dynamically created)
+        try{
+          var all = [];
+          if(window.__preloadedAudios){
+            Object.keys(window.__preloadedAudios).forEach(function(k){ all.push(window.__preloadedAudios[k]); });
+          }
+          document.querySelectorAll('audio').forEach(function(a){ all.push(a); });
+          all.forEach(function(a){
+            if(!a || !a.play) return;
+            try{
+              var wasMuted = a.muted; a.muted = true;
+              var p = a.play();
+              if(p && p.then) p.then(function(){ a.pause(); a.currentTime = 0; a.muted = wasMuted; }).catch(function(){ a.muted = wasMuted; });
+            }catch(e){}
+          });
+        }catch(e){}
+      }
+      ['touchstart','touchend','pointerdown','mousedown','click','keydown'].forEach(function(ev){
+        document.addEventListener(ev, _unlockAudio, {capture:true, once:false, passive:true});
+      });
+      // Periodic AudioContext resume (Safari may suspend on bg)
+      setInterval(function(){
+        try{ if(window.__neoAudioCtx && window.__neoAudioCtx.state === 'suspended') window.__neoAudioCtx.resume(); }catch(e){}
+      }, 2500);
+
+      // ── 3. Camera "overview" render hook. We smoothly blend between the game's
+      //      current camera pose (FPS) and a Mario-Odyssey-style third-person
+      //      overhead pose at render time only — the game's own logic keeps
+      //      reading the original camera state, so nothing else breaks. ──
+      var _wrapped = false;
+      function wrapRenderer(){
+        if(_wrapped) return; if(typeof THREE === 'undefined' || !THREE.WebGLRenderer) return;
+        _wrapped = true;
+        var _origRender = THREE.WebGLRenderer.prototype.render;
+        // Pre-allocated scratch objects (avoid per-frame GC pressure)
+        var _savedPos = new THREE.Vector3();
+        var _savedQuat = new THREE.Quaternion();
+        var _savedUp = new THREE.Vector3();
+        var _forward = new THREE.Vector3();
+        var _ahead = new THREE.Vector3();
+        var _ovrPos = new THREE.Vector3();
+        var _lookAt = new THREE.Vector3();
+        var _fpsLook = new THREE.Vector3();
+        var _smoothTarget = null;
+        var FORWARD_DEFAULT = new THREE.Vector3(0,0,-1);
+        var UP_DEFAULT = new THREE.Vector3(0,1,0);
+        THREE.WebGLRenderer.prototype.render = function(scene, camera){
+          // Hot path: pure FPS — zero overhead
+          var target = window.__viewModeTarget;
+          var t = window.__viewModeBlend;
+          if(t === 0 && target === 0) return _origRender.apply(this, arguments);
+          try{
+            if(!camera || !camera.isPerspectiveCamera) return _origRender.apply(this, arguments);
+            // Ease blend
+            if(t !== target){
+              t += (target - t) * 0.08;
+              if(Math.abs(target - t) < 0.002) t = target;
+              window.__viewModeBlend = t;
+            }
+            if(t < 0.002) return _origRender.apply(this, arguments);
+
+            _savedPos.copy(camera.position);
+            _savedQuat.copy(camera.quaternion);
+            _savedUp.copy(camera.up);
+
+            _forward.copy(FORWARD_DEFAULT).applyQuaternion(camera.quaternion);
+            _forward.y = 0;
+            if(_forward.lengthSq() < 1e-6) _forward.set(0,0,-1);
+            else _forward.normalize();
+
+            // Ahead of camera at current y
+            _ahead.copy(_savedPos).addScaledVector(_forward, 6);
+
+            if(!_smoothTarget){ _smoothTarget = _ahead.clone(); }
+            else { _smoothTarget.lerp(_ahead, 0.18); }
+
+            // Overview pose
+            _ovrPos.copy(_smoothTarget).addScaledVector(_forward, -16);
+            _ovrPos.y += 11;
+
+            camera.position.lerpVectors(_savedPos, _ovrPos, t);
+            _fpsLook.copy(_savedPos).addScaledVector(_forward, 10);
+            _lookAt.copy(_fpsLook).lerp(_smoothTarget, t);
+            camera.up.copy(UP_DEFAULT);
+            camera.lookAt(_lookAt);
+            camera.updateMatrixWorld(true);
+
+            var result;
+            try{ result = _origRender.apply(this, arguments); }
+            finally{
+              camera.position.copy(_savedPos);
+              camera.quaternion.copy(_savedQuat);
+              camera.up.copy(_savedUp);
+              camera.updateMatrixWorld(true);
+            }
+            return result;
+          }catch(e){
+            return _origRender.apply(this, arguments);
+          }
+        };
+      }
+      // Wait for THREE to load
+      var _wi = setInterval(function(){
+        if(typeof THREE !== 'undefined' && THREE.WebGLRenderer){
+          clearInterval(_wi);
+          wrapRenderer();
+        }
+      }, 80);
+      setTimeout(function(){ clearInterval(_wi); }, 30000);
+
+      // ── 4. View-mode chooser overlay (first-run) + settings sheet ──
+      var vmChooser = document.getElementById('vmChooser');
+      var vmSettings = document.getElementById('vmSettings');
+
+      function showOverlay(el){
+        if(!el) return;
+        el.style.display = 'flex';
+        // force reflow then add class
+        void el.offsetWidth;
+        el.classList.add('vm-show');
+      }
+      function hideOverlay(el){
+        if(!el) return;
+        el.classList.remove('vm-show');
+        setTimeout(function(){ if(!el.classList.contains('vm-show')) el.style.display = 'none'; }, 520);
+      }
+
+      // Sync initial UI state
+      setMode(window.__viewMode, true);
+
+      // Prefer user-provided icon PNGs if present (view-overview.png / view-fps.png).
+      // Falls back silently to built-in SVG icons if the files are missing.
+      function trySwapIcon(btnSelector, pngName){
+        try{
+          var btn = document.querySelector(btnSelector);
+          if(!btn) return;
+          var svg = btn.querySelector('svg.vm-ic');
+          if(!svg) return;
+          var img = new Image();
+          img.onload = function(){
+            try{
+              var replacement = document.createElement('img');
+              replacement.src = pngName;
+              replacement.alt = '';
+              replacement.className = 'vm-ic vm-ic-lg';
+              replacement.style.cssText = 'object-fit:contain;display:block;pointer-events:none;';
+              replacement.draggable = false;
+              svg.replaceWith(replacement);
+            }catch(e){}
+          };
+          img.onerror = function(){}; // keep SVG
+          img.src = pngName + '?v=' + Date.now();
+        }catch(e){}
+      }
+      trySwapIcon('.vm-choice[data-vm="overview"]', 'view-overview.png');
+      trySwapIcon('.vm-choice[data-vm="fps"]',      'view-fps.png');
+
+      // Choice buttons (first-run chooser)
+      vmChooser && vmChooser.querySelectorAll('.vm-choice').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          hapSel();
+          setMode(btn.getAttribute('data-vm'), true);
+        });
+        btn.addEventListener('touchstart', function(){ hapTap(); }, {passive:true});
+      });
+      var vmConfirm = document.getElementById('vmConfirmBtn');
+      if(vmConfirm){
+        vmConfirm.addEventListener('click', function(){
+          hapConf();
+          writeMode(window.__viewMode);
+          hideOverlay(vmChooser);
+        });
+        vmConfirm.addEventListener('touchstart', function(){ hapTap(); }, {passive:true});
+      }
+
+      // Settings segmented control
+      vmSettings && vmSettings.querySelectorAll('[data-vm-seg]').forEach(function(b){
+        b.addEventListener('click', function(){
+          hapSel();
+          setMode(b.getAttribute('data-vm-seg'), true);
+          writeMode(window.__viewMode);
+        });
+        b.addEventListener('touchstart', function(){ hapTap(); }, {passive:true});
+      });
+      var vmClose = document.getElementById('vmSettingsCloseBtn');
+      if(vmClose){
+        vmClose.addEventListener('click', function(){ hapConf(); hideOverlay(vmSettings); });
+        vmClose.addEventListener('touchstart', function(){ hapTap(); }, {passive:true});
+      }
+
+      // Background tap → close settings (outside the card)
+      vmSettings && vmSettings.addEventListener('click', function(e){
+        if(e.target === vmSettings){ hapTap(); hideOverlay(vmSettings); }
+      });
+
+      // welcomeSettingsBtn: DO NOT override. Let the game's original settings
+      // open. We only add a haptic tap on press for feel; our view-mode row is
+      // injected into the game's own settings overlay via MutationObserver below.
+      function wireSettingsBtn(){
+        var sb = document.getElementById('welcomeSettingsBtn');
+        if(!sb || sb._vmBound) return;
+        sb._vmBound = true;
+        sb.addEventListener('touchstart', function(){ hapTap(); }, {passive:true, capture:true});
+      }
+      wireSettingsBtn();
+      var _sbIv = setInterval(wireSettingsBtn, 400);
+      setTimeout(function(){ clearInterval(_sbIv); }, 20000);
+
+      // Build an injectable "視点" row for the game's existing settings: a single
+      // tap-target that OPENS the separate view-mode settings screen (vmSettings).
+      function buildVmRow(){
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'vm-row-injected haptic-btn';
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.75rem .6rem;border-top:1px solid rgba(255,255,255,.08);margin-top:.3rem;width:100%;background:transparent;border-left:none;border-right:none;border-bottom:none;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left;color:#fff;font-family:-apple-system,BlinkMacSystemFont,\'SF Pro Display\',sans-serif;transition:background .25s ease;';
+        row.innerHTML = '<span style="display:flex;align-items:center;gap:.7rem;"><span style="font-size:1.2rem;line-height:1;">🎥</span><span><span style="display:block;font-size:.95rem;color:#fff;">視点</span><span style="display:block;font-size:.7rem;color:rgba(255,255,255,.5);margin-top:1px;" id="vmRowValue">' + (window.__viewMode === 'overview' ? '全体' : 'FPS') + '</span></span></span>' +
+          '<span style="display:flex;align-items:center;gap:.4rem;color:rgba(255,255,255,.4);font-size:.95rem;"><span id="vmRowValueRight" style="color:rgba(255,255,255,.55);font-size:.85rem;">' + (window.__viewMode === 'overview' ? '全体' : 'FPS') + '</span>›</span>';
+        row.addEventListener('click', function(ev){
+          ev.stopPropagation();
+          hapConf();
+          showOverlay(vmSettings);
+        });
+        row.addEventListener('touchstart', function(){ hapTap(); row.style.background = 'rgba(255,255,255,.04)'; }, {passive:true});
+        row.addEventListener('touchend',   function(){ setTimeout(function(){ row.style.background = 'transparent'; }, 180); }, {passive:true});
+        return row;
+      }
+      // Keep the "value" label on the injected row in sync
+      function syncRowLabel(){
+        var label = window.__viewMode === 'overview' ? '全体' : 'FPS';
+        document.querySelectorAll('#vmRowValue').forEach(function(e){ e.textContent = label; });
+        document.querySelectorAll('#vmRowValueRight').forEach(function(e){ e.textContent = label; });
+      }
+      var _origSetMode = setMode;
+      setMode = function(m, silent){ _origSetMode(m, silent); try{ syncRowLabel(); }catch(e){} };
+      window.__setViewMode = setMode;
+
+      // Watch for the game's settings overlay appearing and inject our row.
+      // Heuristics: any newly visible fixed/absolute container whose inner text
+      // mentions 設定 / Settings / 環境, excluding our own overlays and unrelated dialogs.
+      function looksLikeSettings(el){
+        if(!el || !el.tagName) return false;
+        if(el.id === 'vmChooser' || el.id === 'vmSettings') return false;
+        if(el.closest && (el.closest('#vmChooser') || el.closest('#vmSettings'))) return false;
+        var cs = window.getComputedStyle(el);
+        if(cs.position !== 'fixed' && cs.position !== 'absolute') return false;
+        if(cs.display === 'none' || parseFloat(cs.opacity||'1') < 0.05) return false;
+        var txt = (el.textContent || '').slice(0, 400);
+        if(!/設定|Settings|環境|サウンド|音|音量|Volume|Sound/i.test(txt)) return false;
+        // Don't inject into the in-game HUD or tiny tooltips
+        var rect = el.getBoundingClientRect();
+        if(rect.width < 220 || rect.height < 160) return false;
+        return true;
+      }
+      function tryInject(el){
+        try{
+          if(!el) return;
+          if(el._vmInjected) return;
+          if(!looksLikeSettings(el)) return;
+          el._vmInjected = true;
+          var row = buildVmRow();
+          // Prefer inserting into the inner card (most-nested element with multiple children)
+          var card = el.querySelector('.liquid-glass, .neo-dialog, .vm-settings-sheet, [class*="panel"], [class*="card"], [class*="dialog"], [class*="sheet"]');
+          var host = card || el;
+          host.appendChild(row);
+        }catch(e){}
+      }
+      // Watch for newly-ADDED roots only (no attribute or descendant scans — those
+      // are expensive during gameplay). We bail out quickly for non-candidate nodes.
+      var _vmInjectDebounce = null;
+      try{
+        new MutationObserver(function(muts){
+          var has = false;
+          for(var i=0;i<muts.length && !has;i++){
+            var added = muts[i].addedNodes;
+            for(var j=0;j<added.length;j++){
+              var n = added[j];
+              if(n.nodeType === 1 && n.tagName !== 'SCRIPT' && n.tagName !== 'STYLE'){ has = true; break; }
+            }
+          }
+          if(!has) return;
+          if(_vmInjectDebounce) return;
+          _vmInjectDebounce = setTimeout(function(){
+            _vmInjectDebounce = null;
+            // Only scan top-level fixed/absolute overlays
+            try{
+              document.querySelectorAll('body > div').forEach(function(d){ tryInject(d); });
+            }catch(e){}
+          }, 120);
+        }).observe(document.body, {childList:true});
+      }catch(e){}
+
+      // First-run: show the chooser as soon as the preloader is hidden. We no
+      // longer wait for welcomeScreen so the chooser is truly the first thing
+      // the user sees on first launch.
+      if(!hasChosen()){
+        var _ci = setInterval(function(){
+          if(hasChosen()){ clearInterval(_ci); return; }
+          var pre = document.getElementById('preloaderScreen');
+          var preCs = pre ? window.getComputedStyle(pre) : null;
+          var preHidden = !pre || preCs.display === 'none' || parseFloat(preCs.opacity || '1') < 0.1;
+          if(preHidden){
+            showOverlay(vmChooser);
+            clearInterval(_ci);
+          }
+        }, 250);
+        setTimeout(function(){ clearInterval(_ci); }, 45000);
+      }
+
+      // ── 5. Global haptic wiring: every <button>, .liquid-button, .haptic-btn,
+      //      .neo-btn-pill, .map-course-node, .liquid-glass tap fires haptic.
+      //      Buttons with classes 'primary'/confirm-y semantics fire confirm. ──
+      function isConfirmButton(el){
+        if(!el) return false;
+        if(el.classList.contains('primary')) return true;
+        if(el.id === 'welcomeStartButton' || el.id === 'introStartButton' || el.id === 'restartButton' || el.id === 'lostRestartButton' || el.id === 'vmConfirmBtn' || el.id === 'colorPickerStartBtn') return true;
+        return false;
+      }
+      function isTapTarget(el){
+        if(!el) return false;
+        if(el.tagName === 'BUTTON') return true;
+        if(el.classList && (el.classList.contains('liquid-button') || el.classList.contains('haptic-btn') ||
+           el.classList.contains('neo-btn-pill') || el.classList.contains('neo-btn-rounded') ||
+           el.classList.contains('neo-close-btn') || el.classList.contains('map-course-node') ||
+           el.classList.contains('editor-item') || el.classList.contains('vm-choice') ||
+           el.classList.contains('vm-confirm') || el.classList.contains('vm-close') ||
+           el.classList.contains('share-arrow-btn') || el.classList.contains('settings-arrow-btn') ||
+           el.classList.contains('lives-bar') )) return true;
+        if(el.getAttribute && (el.getAttribute('role') === 'button')) return true;
+        return false;
+      }
+      function globalHaptic(e){
+        try{
+          var el = e.target && e.target.closest ? e.target.closest('button, [role="button"], .liquid-button, .haptic-btn, .neo-btn-pill, .neo-btn-rounded, .neo-close-btn, .map-course-node, .editor-item, .vm-choice, .vm-confirm, .vm-close, .share-arrow-btn, .settings-arrow-btn, .lives-bar, .intro-notif') : null;
+          if(!el) return;
+          // Avoid double-haptic: if element already owns dedicated handling, skip (we still emit a light tap for unhandled cases)
+          if(el._neoHapticFired) return; el._neoHapticFired = true;
+          setTimeout(function(){ el._neoHapticFired = false; }, 80);
+          if(isConfirmButton(el)) hapConf(); else hapTap();
+        }catch(err){}
+      }
+      document.addEventListener('touchstart', globalHaptic, {passive:true, capture:true});
+      document.addEventListener('click',      globalHaptic, true);
+
+      // ── 6. WorldMap transition: delegated to the pre-existing patch (~line 773).
+      //      Nothing added here — duplication removed per user guidance.
+    }();
+    </script>
+</body>
+</html>

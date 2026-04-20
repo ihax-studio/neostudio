@@ -1,0 +1,27 @@
+{
+    "name": "Neosaurs",
+    "short_name": "Neosaurs",
+    "description": "🦕 3D Egg Hunting Game",
+    "start_url": "/",
+    "display": "fullscreen",
+    "display_override": ["fullscreen", "standalone"],
+    "orientation": "any",
+    "background_color": "#0a0a1e",
+    "theme_color": "#0a0a1e",
+    "icons": [
+        {
+            "src": "appicon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "appicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "categories": ["games"],
+    "lang": "ja"
+}

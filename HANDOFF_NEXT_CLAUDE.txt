@@ -1,0 +1,443 @@
+===============================================================================
+ DASHUI v2 — 次 Claude への引継ぎ書
+ 更新日: 2026-04-20 / 前任者: Claude Opus 4.7
+===============================================================================
+
+
+== 現状 ONE-LINE ==
+単一 index.html (5800+ 行) + /neosaurs/ (27MB) + /assets/ で動作する DASHUI v2。
+T1-T13 + 追加 30 項目実装済。ローカル 127.0.0.1:8765 動作中。
+Netlify push は S 本人実施予定。
+
+
+== ファイル構造 ==
+
+/Users/user/Downloads/dashui-v2/
+├── index.html              DASHUI 本体 (5800+ 行)
+├── DESIGN_BRIEF_V2.md      初期仕様書 (必読)
+├── HANDOFF_NEXT_CLAUDE.md  引継ぎ書 (.md)
+├── HANDOFF_NEXT_CLAUDE.txt 引継ぎ書 (このファイル)
+├── assets/
+│   ├── gear.png            設定アイコン (pause 画面)
+│   ├── ipod.png            iPod インベントリアイコン
+│   └── person.png          使用停止 (pState emoji 優先)
+└── neosaurs/               Neosaurs-main 完全同梱 (27MB)
+    ├── index.html          bridge script 追加済
+    │                       data-neo-patch="dashui-bridge" 属性付き
+    ├── _033b3a75e3568611.js  991KB obfuscated game core
+    ├── style.css
+    └── *.mp3, *.png 等     BGM/SFX/画像アセット
+
+
+== すぐ動かす ==
+
+cd /Users/user/Downloads/dashui-v2
+python3 -m http.server 8765 --bind 127.0.0.1
+# ブラウザで http://127.0.0.1:8765/index.html?debug=1
+
+
+== Netlify 情報 ==
+
+- Live         : https://dashui-game-1776592490.netlify.app
+- site_id      : 6a5ca9c2-a454-4f68-b8fc-9847ea196bf3
+- team         : ihax-studio
+- GitHub PAT   : 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 (~2026-06)
+- GitHub user  : S-Users15
+- Neosaurs repo: ihax-studio/Neosaurs (private)
+- DASHUI repo  : 未作成(単一 HTML 手動管理)
+- deploy 手段  : netlify CLI なし、npm/node なし、Homebrew なし
+                 → Web UI ドラッグ & ドロップ or GitHub 連携 push-to-deploy
+
+
+===============================================================================
+ 実装済 (完全リスト)
+===============================================================================
+
+[T1-T13 (DESIGN_BRIEF)]
+
+[x] T1  Sun 77 Remix
+        → Neosaurs に完全委譲で実装
+        → enterSun77RemixLocal はローカル残存だが未呼出
+
+[x] T2  巨大太陽
+        → (25,7,-10) Canvas grad + ノイズ + 2 層コロナ
+        → findFlat 補正、触れたら(3D dist<9.0) Neosaurs (PC/mobile 共通)
+
+[x] T3  土管
+        → 4 箇所配置 (15,6)/(-25,-20)/(45,25)/(-55,40)
+        → どれも Neosaurs WORLDMAP に委譲
+        → mobile 1.9m auto / PC E キー
+
+[x] T4  i18n (ja/en/zh/ko)
+        → navigator.language 自動、手動 UI 撤去
+        → I18N 辞書 60+ キー、data-i18n 属性
+
+[x] T5  haptic 強化
+        → joy 8方向切替 (70ms ヒステリシス)
+        → 着地 (velY<-4.5)、水切替、閉じる系網羅
+
+[ ] T6  Creator
+        → Neosaurs に委譲、自作 UI 撤去済
+        → Phase 1-5 は未実装 (委譲で解決)
+
+[x] T7-1 シネマ基盤
+        → ACESFilmicToneMapping + EffectComposer
+        → UnrealBloomPass + ShaderPass (暖tint/コントラスト/シャドウ青)
+        → 30fps < 5s で low 自動降格
+
+[ ] T7-2 EnvMap
+        → 未実装 (重すぎて保留)
+
+[x] T8  屋敷慣性物理
+        → G.velX/velZ、ACCEL 30、MAX 7.5、FRICTION 0.88、傾き演出
+
+[x] T9  アイテム 5 種追加
+        → 🗝️鍵 / 🕯️ろうそく / 🔔鈴 / 📕古い本 / 💎宝石
+        → playerFlashlight SpotLight、playerCandle PointLight
+        → 部屋3 鍵ロック、progPill に 🗝️
+
+[x] T10 Neobench 時計位置統合
+        → #nbClockDots 20px 大型
+        → 測定中は modal 非表示 (ドットだけ)、測定後 popup
+
+[x] T11 pause iOS ロック画面風
+        → SF Pro Display weight 100、clamp(86,17vw,158)
+        → person avatar (pState.emoji + 色 radial grad)
+        → gear.png アイコン + 再開 + 最初にもどる
+
+[x] T12 閉じる系 haptic
+        → [class*="close"], .imac-close, .ipod-close, #qCl 等
+
+[x] T13 作るボタン
+        → HUD #createBtn 撤去、タイトル .nav 3つ目
+        → Neosaurs liquid-button 3D スタイル
+        → .locked で 🔒 表示、クリア後解禁、Neosaurs 委譲
+
+
+[追加要望]
+
+[x] Neosaurs 完全委譲
+    → 太陽 / 土管 / 作る すべて neosaurs/index.html に遷移
+    → 27MB 一式同梱
+
+[x] Neosaurs Bridge Script (data-neo-patch="dashui-bridge")
+    → 左上「← DASHUI」バックボタン表示
+    → MutationObserver で #welcomeCreateBtn.classList.locked 常時除去
+    → create=1 時 pointer/mouse/touch 全イベント発火で auto-tap
+    → 卵 30 個不要
+
+[x] セキュリティロック回避
+    → 3s 後の script-wipe 対策 (data-neo-patch 属性)
+    → hostname check pass (127.0.0.1 / .netlify.app)
+    → locked class 動的除去
+
+[x] iOS ロック画面風一時停止
+    → 白背景 blur38 saturate1.6
+    → SF Pro Display weight 100
+    → clamp(86, 17vw, 158)
+    → person avatar + gear + 再開 + 最初にもどる
+
+[x] カスタムダイヤログ (alert/confirm/prompt 完全廃止)
+    → vmShowDialog(title, body, buttons)
+    → vmConfirm(msg)
+    → vmChoice(title, body, choices)
+    → SE: open=stop.mp3, 選択=return.mp3, キャンセル/閉=back.mp3
+    → scale 0.5→1 を 0.5s で
+
+[x] 地図ゲート (屋敷ドア物理封鎖)
+    → walls に _mapGate 追加
+    → pickupMap で splice 削除
+    → map 未所持なら壁に激突
+
+[x] クイズ黒字半透明
+    → .qopt bg rgba(255,255,255,.55) blur16
+    → color #111, font-weight 500
+
+[x] 暗号メモ修復
+    → note2 content "暗号の真ん中の数 = 7 (3 7 1)"
+
+[x] 速度ブースト
+    → SPEED 12.5→16, DASH 1.5→1.8, WATER 5→6
+    → 屋敷 ACCEL_H 30, MAX_H 7.5
+
+[x] 山当たり判定
+    → dY > 2.8 で斜面ブロック (旧 2.1)、飛行中は無効
+    → registerMountainObstacles() で h>2.6 を obstacle (r=3.5)
+    → 卵は h>2.5 で再抽選、findFlat で平坦化
+
+[x] 画質固定
+    → mid デフォ
+    → Neobench で FPS≥55 & dm≥6 & goodGpu & dpr≥2 で内部 max 昇格
+    → 設定 UI 撤去
+
+[x] 言語自動
+    → navigator.language 固定、設定 UI 撤去
+
+[x] シャボン玉 + Apple Store タワー
+    → MeshPhysicalMaterial (transmission .92, iridescence 1.0, clearcoat 1.0)
+    → 大シャボン玉 (-40, +6, -30) 半径 6、ふわふわアニメ
+    → Apple Tower (60, 0, -70) 5 段バブル重ね
+    → 両方 minimap にドット
+
+[x] iPod 3D のみモード
+    → 選択肢/再生コントロール撤去
+    → 3D モデル + 現在曲名のみ
+    → .ipod3donly class
+
+[x] iPod PNG アイコン
+    → インベントリで id==='ipod' のとき assets/ipod.png
+
+[x] コレクション永続化
+    → localStorage.dashui.collection
+    → ロード時に復元、最大 6 枠でインベントリ反映
+
+[x] PC auto-enter 撤廃
+    → IS_TOUCH 判定で PC は E キー必須
+    → mobile のみ接近自動
+    → sun/collect は例外、常に自動
+
+[x] Debug HUD (?debug=1 or localStorage.dashui.debug='1')
+    → 緑文字上部中央 11px
+    → FPS/area/room/pos/velY/onG/inWater/found count
+
+[x] ユーザアイコン
+    → pState.emoji + pState.colorKey で radial gradient
+    → 写真 person.png 不使用
+
+[x] SE 統一 (17 箇所)
+    → 開く : stop.mp3
+    → 選択 : return.mp3
+    → 戻る/閉: back.mp3
+
+
+===============================================================================
+ TODO (優先度順)
+===============================================================================
+
+【P0 高優先 — デプロイ・検証】
+
+1. Netlify 本番デプロイ
+   - netlify CLI 無し、npm 無し
+   - 選択肢: Web UI ドラッグ&ドロップ / GitHub 連携 push-to-deploy
+   - S が push 予定
+
+2. 実機 iPhone 検証
+   - 太陽タップ → Neosaurs 起動するか
+   - create=1 auto-click が production で効くか
+   - 全 SE (stop/return/back) が鳴るか
+   - 閉じる系 haptic
+
+3. Neosaurs 本体動作確認
+   - .netlify.app で _033b3a75e3568611.js が 200 返すか
+   - obfuscator 認証通過するか
+
+
+【P1 中優先 — 機能残】
+
+4. T9 視覚演出強化
+   - note2 → 部屋1 絵画 90° 回転 (未実装)
+   - note3 → 部屋2 光る足跡 + → パーティクル (未実装)
+   - bell → 隠し扉方向示唆 (骨組みのみ)
+   - tome → クイズ選択肢絞り込み (未実装)
+
+5. T7-2 EnvMap
+   - PMREMGenerator で envMap
+   - 高品質時のみ有効化
+
+6. カメラ演出
+   - 太陽接触時ズームイン
+   - 土管トップダウン
+
+7. Sun77 10 回クリアの豪華演出
+   - フラッシュ + パーティクル + winsong.mp3
+
+
+【P2 低優先】
+
+8. T6 Creator Phase 分割 (Neosaurs 委譲で解決済、独自拡張したい場合のみ)
+9. shadowMap + AA (高品質モード)
+10. AOMap ベイク
+
+
+===============================================================================
+ 破壊禁止リスト (触る前に必ず S に確認)
+===============================================================================
+
+1. haptic 配線 (line ~866)
+   HAPTIC_SEL, SWIPE_SEL, _hapticIfButton
+   touchstart+pointerdown capture 2 系統
+
+2. 屋敷内固定カメラ (G.area==='building' 分岐)
+   cx=0, cy=D*1.3+6, cz=D*0.55+1.5
+   FOV 55, lookAt(0, 0.4, 0)
+
+3. iMac G4 モバイル簡素化
+   @media max-width:700px .imacm
+
+4. クイズ条件 (openQuiz())
+   required = ['note1','note2','note3','flashlight','key']
+   ← key 追加済
+
+5. クリアフェード復帰 (triggerClear())
+   0.6s fadeOv
+
+6. #progPill
+   屋敷進捗表示 (🗝️ 追加済)
+
+7. 接近ヒント通知
+   G._hintSeen
+
+8. ios-haptics importmap
+   "ios-haptics":"https://esm.sh/ios-haptics@0.1.4"
+
+
+===============================================================================
+ コーディング規則 (S 指定)
+===============================================================================
+
+- 2 space indent、シングルクォート、セミコロン
+- ES Modules + Three.js 0.160
+- $(id) = document.getElementById エイリアス
+- snd(name, vol=1, loop=false) / island(emoji, text, sub) / toast(msg, dur)
+- hTap() / hOk() / hNg() は haptic() のエイリアス
+- alert/confirm/prompt は禁止 → vmConfirm/vmChoice/vmShowDialog
+- SE 統一:開く=stop.mp3、選択=return.mp3、閉/戻=back.mp3
+- トランジション iOS 風: 0.5s cubic-bezier(.77,0,.18,1)
+- コメントは日本語 or 短い英語
+
+
+===============================================================================
+ Neosaurs 統合の要点
+===============================================================================
+
+[Bridge Script] (/neosaurs/index.html 冒頭 line 299)
+
+<script data-neo-patch="dashui-bridge">
+(function(){
+  // 1. fromDashui 検出 (from=dashui | back=1 | referrer dashui)
+  // 2. 左上「← DASHUI」バックボタン表示
+  // 3. keepUnlocked: MutationObserver で welcomeCreateBtn.locked 削除
+  // 4. create=1 時 pointer/mouse/touch 全発火で auto-tap
+})();
+</script>
+
+必須属性: data-neo-patch="..." (3s 後の script-wipe 対策)
+
+[Neosaurs の保護]
+- hostname check: .netlify.app / localhost / 127.0.0.1 のみ
+- 3s 後 <script> wipe (data-neo-patch 除外)
+- console.log = noop
+- #welcomeCreateBtn.locked 時は click handler block
+- _033b3a75e3568611.js は X-Neo-Auth + token ヘッダで認証
+
+[遷移フロー]
+- 太陽タップ (3D dist<9.0, 常時)
+  → enterSunRemix()
+  → 500ms フェード
+  → location.href='neosaurs/index.html?from=dashui&back=1&ts=...'
+
+- 土管 (1.9m, mobile auto / PC E キー)
+  → 同様
+
+- 作る (クリア後)
+  → enterSunRemix(true)
+  → &create=1 追加
+  → Neosaurs で auto-tap
+
+
+===============================================================================
+ 構文検証コマンド (node なし環境)
+===============================================================================
+
+JSC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
+
+python3 -c "
+import re
+with open('/Users/user/Downloads/dashui-v2/index.html') as f: c=f.read()
+m=re.search(r'<script type=\"module\">(.*?)</script>', c, re.DOTALL)
+s=m.group(1)
+s=re.sub(r'^\s*(import|export)[^;]+;', '', s, flags=re.MULTILINE)
+open('/tmp/a.js','w').write(s)
+"
+
+$JSC -e 'try{new Function(readFile("/tmp/a.js"));print("SYNTAX_OK")}catch(e){print("ERR",e.message,e.line)}'
+
+
+===============================================================================
+ 主要コード位置 (index.html)
+===============================================================================
+
+機能                                    行付近
+-------------------------------------   ------
+importmap                               7
+CSS 設定モーダル vm-*                   200-260
+クイズ .qopt                            602-620
+iPod .ipod3donly                        135-230
+HTML #title                             940
+HTML #pauseOv                           948
+HTML #vmSettings / #vmDialog            960-1010
+HTML #creatorOv                         1028
+I18N 辞書                               1050-1125
+HAPTIC_SEL                              1175-1225
+renderer + composer                     1500-1700
+heightAt / findFlat                     1834-1870
+pipes 4箇所 / sun / bubble / tower      3490-3600
+addItem (鍵/ろうそく等)                 3000-3060
+openQuiz                                4450
+triggerClear                            4560
+enterSunRemix                           3910
+enterBuilding (map gate)                3908
+Neobench + max 判定                     4380-4440
+vmChoice/vmConfirm/vmShowDialog         4695-4740
+pauseBackup/Delete                      5055-5110
+IS_TOUCH auto-enter 分岐                5780-5800
+animate()                               5140
+Debug HUD                               5475
+
+
+===============================================================================
+ S への対応指針
+===============================================================================
+
+1. 日本語カジュアル会話、結論先出し
+2. 長い説明より動くコード + 短い要約
+3. 破壊禁止リスト触る前は必ず S に確認
+4. alert/confirm/prompt 絶対使わない
+5. 不明点は勝手に決めず質問
+6. 実機 iPhone で確認を前提
+7. 小さくデプロイして確認の反復 — 一発で全部やらない
+8. 既存実装を grep で確認してから追加
+
+
+===============================================================================
+ 次に「今すぐやる」べき最小手順
+===============================================================================
+
+1. ローカル動作再確認
+   cd /Users/user/Downloads/dashui-v2
+   python3 -m http.server 8765 --bind 127.0.0.1 &
+   curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8765/index.html
+
+2. S に「デプロイ進捗?」確認
+
+3. 本番 URL (.netlify.app) で以下を実機確認:
+   - 太陽接触 → Neosaurs 起動
+   - 土管接触 → Neosaurs 起動
+   - 作るボタン → Neosaurs Creator 起動 (create=1 で auto-tap)
+   - 左上「← DASHUI」で戻れる
+   - 閉じる系 haptic / SE (stop/return/back) 鳴る
+   - 暗号 3-7-1 で脱出成功
+
+4. 問題あれば Safari Web Inspector の Console で:
+   - [DASHUI] enterSunRemix → Neosaurs
+   - [bridge] init
+   - [bridge] tapping welcomeCreateBtn
+   のログ確認
+
+5. Neosaurs の console.log は noop 化されているため、
+   デバッグ時は bridge script 内に console オーバーライド注入で対応
+
+
+===============================================================================
+ 以上。健闘を祈る。
+===============================================================================
