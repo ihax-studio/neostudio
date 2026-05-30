@@ -935,7 +935,7 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
   <div class="nav">
     <div class="item"><div class="circ glass btn" id="newBtn">▶</div><div class="cap" data-i18n="title.new">新しい物語 / 始める</div></div>
     <div class="item"><div class="circ glass btn" id="loadBtn">↓</div><div class="cap" data-i18n="title.load">読み込む / 受け取る</div></div>
-    <div class="item" id="titleCreateItem"><div class="circ glass btn" id="titleCreateBtn">🛠</div><div class="cap" data-i18n="title.create">作る</div></div>
+    <!-- 「作る」機能は廃止 (Phase 0) -->
   </div>
   <div class="corner l glass btn" id="setBtn">☰</div>
   <div class="corner r glass btn" id="optBtn">⚙</div>
@@ -1045,16 +1045,7 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
 <div class="modal-ov" id="mOv"><div class="modal glass" id="mBody"></div></div>
 <div class="modal-ov" id="nOv"><div class="modal glass" id="nBody"></div></div>
 
-<div id="creatorOv">
-  <h2 data-i18n="creator.title">🛠 つくるモード</h2>
-  <div class="pal" id="cPal"></div>
-  <div id="cGrid" class="grid"></div>
-  <div class="acts">
-    <button class="nbtn" id="cSave" data-i18n="creator.save">保存</button>
-    <button class="nbtn" id="cTest" data-i18n="creator.test">テストプレイ</button>
-    <button class="nbtn" id="cClose" data-i18n="common.close">閉じる</button>
-  </div>
-</div>
+<!-- creatorOv: 「作る」機能は廃止 (Phase 0) -->
 
 <script>
 addEventListener('error',e=>{
@@ -1213,10 +1204,22 @@ function snd(name,vol=1,loop=false){
    内部で navigator.vibrate / <input type="checkbox" switch> を自動で使い分けるので
    iOS Safari 17.4+ と Android の両方で鳴る。 */
 
-/* 既存 API（hTap/hOk/hNg）はそのまま使えるよう中身だけ差し替え */
-function hTap(){haptic()}
-function hOk (){haptic.confirm()}
-function hNg (){haptic.error()}
+/* ─── haptic 集約モジュール H (再設計) ───
+   単一窓口に統一: H.tap / H.select / H.confirm / H.error / H.warn / H.heavy
+   ios-haptics が未ロード/失敗でも例外を投げない(try/catch で握り潰す)。
+   既存 API hTap/hOk/hNg は H へ委譲して後方互換を維持。 */
+const H={
+  tap()    {try{haptic()}catch(e){}},
+  select() {try{haptic()}catch(e){}},
+  confirm(){try{haptic.confirm()}catch(e){}},
+  error()  {try{haptic.error()}catch(e){}},
+  warn()   {try{haptic.error()}catch(e){}},
+  heavy()  {try{haptic.confirm()}catch(e){}}
+};
+window.H=H;
+function hTap(){H.tap()}
+function hOk (){H.confirm()}
+function hNg (){H.error()}
 
 /* ─── グローバル配線: touchstart と pointerdown の両方を捕捉。
    iOS Safari では touchstart の方が「より user-gesture」として扱われる傾向がある。
@@ -1455,6 +1458,15 @@ function saveAndExit(){
 /* ---------------- Renderer ---------------- */
 const canvas=$('world');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+/* WebGL コンテキストロスト復旧 (クラッシュ→白画面の致命化を防ぐ)。
+   preventDefault しないとブラウザは永久ロスト扱いにし restored を発火しない。 */
+canvas.addEventListener('webglcontextlost',e=>{
+  e.preventDefault();
+  try{toast(G_LANG==='ja'?'描画を復旧中…':'Restoring graphics…',3000)}catch(_){}
+},false);
+canvas.addEventListener('webglcontextrestored',()=>{
+  try{toast(G_LANG==='ja'?'描画を復旧しました':'Graphics restored',1500)}catch(_){}
+},false);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -4025,36 +4037,10 @@ const SUN77_PLATFORMS=[
   sunCourseGrp.add(bgSun);
 }
 function enterSunRemix(create){
-  // Neosaurs 起動(ページ遷移)— フリーズ防止:fetch は並行、即遷移
-  console.log('[DASHUI] enterSunRemix → Neosaurs',{create:!!create});
-  const fade=$('fadeOv');fade.classList.add('on');
-  snd('activate',.6);hOk();
-  try{
-    sessionStorage.setItem('dashui.returnFromNeosaurs','1');
-    sessionStorage.setItem('dashui.player.pos',JSON.stringify({x:25,y:heightAt(25,-5)+2,z:-5}));
-  }catch(e){console.warn('[DASHUI] sessionStorage failed:',e)}
-  const qs=['from=dashui','back=1','ts='+Date.now()];
-  if(create)qs.push('create=1');
-  const neoUrl='neosaurs/index.html?'+qs.join('&');
-  // フリーズ防止:pre-check はしない、直接遷移(同一オリジンなのでほぼ失敗しない)
-  setTimeout(()=>{
-    try{
-      console.log('[DASHUI] navigating to',neoUrl);
-      location.href=neoUrl;
-    }catch(e){
-      console.error('[DASHUI] navigation failed',e);
-      fade.classList.remove('on');
-      toast(G_LANG==='ja'?'Neosaurs 起動失敗':'Neosaurs launch failed');
-      hNg();
-    }
-  },500);
-  // 保険タイムアウト:2 秒で遷移しなかったら fade 解除
-  setTimeout(()=>{
-    if(fade.classList.contains('on') && document.visibilityState==='visible'){
-      console.warn('[DASHUI] navigation seems stuck, releasing fade');
-      fade.classList.remove('on');
-    }
-  },2500);
+  // Neosaurs 依存を廃止 (Phase 0)。
+  // 旧実装は neosaurs/index.html(27MB+難読化) へページ遷移しておりクラッシュ要因だった。
+  // 行き先はローカルのサンコースに統一(ページ遷移なし=メモリ破綻/コンテキストロスト回避)。
+  enterSun77RemixLocal();
 }
 function exitNeosaurs(){
   // ページ遷移版なので通常は使わないが、戻ってきた時の処理はページロード時に判定
@@ -4684,14 +4670,8 @@ $('newBtn').onclick=()=>{
 function getSlots(){try{return JSON.parse(localStorage.getItem('dashui.slots')||'[]')}catch(e){return[]}}
 function setSlots(a){try{localStorage.setItem('dashui.slots',JSON.stringify(a))}catch(e){}}
 function launchCustomStage(cells){
-  cState.cells={...cells};
-  if($('title').style.display!=='none'){
-    $('title').classList.add('hide');
-    setTimeout(()=>{$('title').style.display='none';$('hud').classList.add('on');enterCustomRoom()},450);
-  }else{
-    $('creatorOv').classList.remove('on');
-    enterCustomRoom();
-  }
+  // 「作る」機能は廃止 (Phase 0)。旧セーブスロットを開いても起動しない。
+  toast(G_LANG==='ja'?'「作る」機能は廃止されました':'The Create feature has been removed');hNg();
 }
 $('loadBtn').onclick=()=>{
   snd('click-001',.5);hTap();
@@ -4965,39 +4945,11 @@ function openCreator(){
     gr.appendChild(d);
   }
 }
-$('titleCreateBtn').onclick=()=>{
-  const cleared=(()=>{try{return localStorage.getItem('dashui.cleared')==='1'}catch(e){return false}})();
-  if(!cleared){
-    snd('back',.4);hNg();
-    toast(t('common.locked'));
-    return;
-  }
-  // Neosaurs の作ると全く同じ(Neosaurs 本体のエディタに委譲)
-  enterSunRemix(true);
-};
-// タイトル表示時: クリア済みなら hasCleared、未クリアなら locked
-try{
-  if(localStorage.getItem('dashui.cleared')==='1'){
-    $('titleCreateItem').classList.add('hasCleared');
-  }else{
-    $('titleCreateItem').classList.add('locked');
-  }
-}catch(e){}
-$('cSave').onclick=()=>{
-  const slots=getSlots();
-  const nm=prompt('ステージ名',`ステージ${slots.length+1}`);
-  if(!nm){snd('c1',.4);return}
-  slots.push({name:nm,cells:{...cState.cells},date:Date.now()});
-  setSlots(slots);
-  try{localStorage.setItem('dashui.userRooms',JSON.stringify(cState.cells))}catch(e){}
-  snd('check',.7);toast('「'+nm+'」を保存');
-};
-$('cTest').onclick=()=>{snd('activate',.6);
-  $('creatorOv').classList.remove('on');enterCustomRoom()};
-$('cClose').onclick=()=>{snd('click-003',.4);$('creatorOv').classList.remove('on')};
+/* 「作る」機能は廃止 (Phase 0): titleCreateBtn / creator(保存/テスト/閉じる) 配線を撤去 */
 
 const customRoom=new THREE.Group();customRoom.visible=false;scene.add(customRoom);
 function enterCustomRoom(){
+  return; // 「作る」機能は廃止 (Phase 0)。以下は到達不能(デッドコード)。
   while(customRoom.children.length)customRoom.remove(customRoom.children[0]);
   const size=12,H=4,hs=size/2;
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(size,size),mkMat(0x5a4a3a));
@@ -5545,14 +5497,16 @@ function animate(){
       }
     }
   }
-  dustGeo.attributes.position.needsUpdate=true;
+  if(G.area==='grass')dustGeo.attributes.position.needsUpdate=true;
 
-  // Ocean waves
-  for(let i=0;i<oPos.count;i++){
-    const x=oBase[i*3],z=oBase[i*3+2];
-    oPos.setY(i,Math.sin(tt*.8+x*.1)*.3+Math.cos(tt*1.1+z*.08)*.25);
+  // Ocean waves — 草原表示時のみ頂点更新(屋敷/コース中は world 非表示なので無駄を排除=軽量化)
+  if(G.area==='grass'){
+    for(let i=0;i<oPos.count;i++){
+      const x=oBase[i*3],z=oBase[i*3+2];
+      oPos.setY(i,Math.sin(tt*.8+x*.1)*.3+Math.cos(tt*1.1+z*.08)*.25);
+    }
+    oPos.needsUpdate=true;
   }
-  oPos.needsUpdate=true;
   wfMat.opacity=.55+Math.sin(tt*8)*.15;
 
   collectibles.forEach((c,i)=>{
@@ -5811,7 +5765,7 @@ function animate(){
 
   if(G.puzzleSolved)exitPortal.visible=true;
 
-  updateWeather(dt);
+  if(G.area==='grass')updateWeather(dt);
   tickWeatherCycle(dt);
 
   if(auroraEnd>now){
