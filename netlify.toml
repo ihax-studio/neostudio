@@ -1,0 +1,26 @@
+# Neo Studio — 静的サイト(単一 index.html + assets / sounds / neosaurs 音源)
+# ビルド不要。リポジトリ直下をそのまま公開する。
+[build]
+  publish = "."
+  command = ""
+
+# HTML は毎回確認、音声/画像/アセットは長めにキャッシュ
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sounds/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/neosaurs/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
