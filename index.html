@@ -938,7 +938,7 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
 #course2dOv.on{display:flex}
 #c2canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
 .c2-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
-  padding:14px 16px;z-index:5;pointer-events:none}
+  padding:14px 16px;z-index:12;pointer-events:none}
 .c2-top>*{pointer-events:auto}
 .c2-back{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
 .c2-title{font:600 16px var(--font);letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.55)}
@@ -1115,6 +1115,7 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
   <div class="c2-top">
     <div class="c2-back glass btn" id="c2back">‹</div>
     <div class="c2-title" id="c2title"></div>
+    <div class="c2-back glass btn" id="c2mute" style="margin-left:auto">🔊</div>
     <div class="c2-stat glass"><span id="c2lives">❤️❤️❤️</span><span id="c2coins">✦ 0</span></div>
   </div>
   <div id="c2touch">
@@ -3969,7 +3970,7 @@ function tryInteract(){
   if(n.data.kind==='collect'){collectPickup(n);return}
   if(n.data.kind==='portalIn'){enterBuilding();return}
   // 土管も太陽も Neosaurs に完全委譲(worldmap 含む)
-  if(n.data.kind==='pipeWorldmap'){enterSunRemix();return}
+  if(n.data.kind==='pipeWorldmap'){enterCourses();return}
   if(n.data.kind==='sunRemix'){enterSunRemix();return}
   if(n.data.kind==='quiz'){openQuiz();return}
   if(n.data.kind==='exitPortal'){tryExit();return}
@@ -4187,6 +4188,15 @@ function enterSunRemix(create){
   // 旧実装は neosaurs/index.html(27MB+難読化) へページ遷移しておりクラッシュ要因だった。
   // 行き先はローカルのサンコースに統一(ページ遷移なし=メモリ破綻/コンテキストロスト回避)。
   enterSun77RemixLocal();
+}
+/* Phase 3: 土管(オデッセイの土管=2D 面の入口)→ 2D コース選択を開く。
+   2D エンジンは CDN 非依存の別スクリプト(window.openCourseSelect)。未ロード時は 3D サンコースへ退避。 */
+function enterCourses(){
+  try{
+    snd('activate',.6);hOk();
+    if(typeof window.openCourseSelect==='function'){window.openCourseSelect();}
+    else enterSun77RemixLocal();
+  }catch(e){enterSun77RemixLocal();}
 }
 function exitNeosaurs(){
   // ページ遷移版なので通常は使わないが、戻ってきた時の処理はページロード時に判定
@@ -5902,7 +5912,7 @@ function animate(){
       else if(d.kind==='imac'&&nearestDist<2.2&&(!G._macCd||now>G._macCd)){openIMacDesktop();G._macCd=now+2500}
       else if(d.kind==='iphone'&&nearestDist<2.0&&(!G._phCd||now>G._phCd)){openIPhone();G._phCd=now+2500}
       else if(d.kind==='portalIn'&&nearestDist<2.5){enterBuilding()}
-      else if(d.kind==='pipeWorldmap'&&nearestDist<1.9&&(!G._pipeCd||now>G._pipeCd)){enterSunRemix();G._pipeCd=now+3000}
+      else if(d.kind==='pipeWorldmap'&&nearestDist<1.9&&(!G._pipeCd||now>G._pipeCd)){enterCourses();G._pipeCd=now+3000}
       else if(d.kind==='sunRemix'&&nearestDist<2.5&&(!G._sunCd||now>G._sunCd)){enterSunRemix();G._sunCd=now+3000}
       else if(d.kind==='door'&&nearestDist<1.8 && (!G._doorCd||now>G._doorCd)){enterRoom(d.to);G._doorCd=now+800}
       else if(d.kind==='exitPortal'&&nearestDist<.9&&G.puzzleSolved){tryExit()}
@@ -6033,6 +6043,21 @@ console.log('DASHUI Neo Studio ready');
   function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
   var H=window.H||{tap:function(){vib(10)},confirm:function(){vib([12,28,12])},error:function(){vib([26,40,26])},select:function(){vib(8)}};
 
+  /* ---- 音(neosaurs 音源を流用): SE + コース別BGM(引き継ぎ3曲) ---- */
+  var SE={jump:'neosaurs/jump.mp3',coin:'neosaurs/get.mp3',die:'neosaurs/explode.mp3',
+    clear:'neosaurs/score.mp3',ui:'neosaurs/tap.mp3'};
+  var BGM=['neosaurs/bgm-2.mp3','neosaurs/classic.mp3','neosaurs/tung.mp3'];
+  var _au={},_bgm=null,muted=false;
+  try{muted=localStorage.getItem('neo.muted')==='1';}catch(e){}
+  function sfx(key,vol){if(muted)return;try{var src=SE[key];if(!src)return;var a=_au[src];
+    if(!a){a=new Audio(src);_au[src]=a;}a.currentTime=0;a.volume=vol==null?.55:vol;a.play().catch(function(){});}catch(e){}}
+  function stopBgm(){try{if(_bgm)_bgm.pause();}catch(e){}}
+  function playBgm(i){try{stopBgm();if(muted)return;var src=BGM[i%BGM.length];var a=_au['b:'+src];
+    if(!a){a=new Audio(src);a.loop=true;_au['b:'+src]=a;}_bgm=a;a.volume=.34;a.currentTime=0;a.play().catch(function(){});}catch(e){}}
+  function setMuted(m){muted=m;var b=document.getElementById('c2mute');if(b)b.textContent=m?'🔇':'🔊';
+    if(m)stopBgm();else if(view==='play')playBgm(cur);
+    try{localStorage.setItem('neo.muted',m?'1':'0')}catch(e){}}
+
   /* ---- コースデータ(物語付き)。凡例: # 地面 / = 足場 / ^ トゲ / o かけら / S 開始 / G ゴール ---- */
   var COURSES=[
     { id:'c1',
@@ -6143,7 +6168,7 @@ console.log('DASHUI Neo Studio ready');
     p.coyote=p.onGround?0.09:Math.max(0,p.coyote-dt);
     if(input.jumpEdge){p.jbuf=0.12;input.jumpEdge=false;}
     else p.jbuf=Math.max(0,p.jbuf-dt);
-    if(p.jbuf>0&&p.coyote>0){p.vy=-JUMP;p.onGround=false;p.coyote=0;p.jbuf=0;H.tap();}
+    if(p.jbuf>0&&p.coyote>0){p.vy=-JUMP;p.onGround=false;p.coyote=0;p.jbuf=0;H.tap();sfx('jump',.5);}
     // 重力
     p.vy+=GRAV*dt;if(p.vy>1400)p.vy=1400;
     // 水平移動 + 衝突
@@ -6184,19 +6209,19 @@ console.log('DASHUI Neo Studio ready');
       var ch=tileAt(c,r);if(ch===' '||ch==='#'||ch==='=')continue;
       var tx=c*T,ty=r*T;
       if(!(p.x<tx+T&&p.x+p.w>tx&&p.y<ty+T&&p.y+p.h>ty))continue;
-      if(ch==='o'){grid[r]=grid[r].substring(0,c)+' '+grid[r].substring(c+1);coins++;updateHud();H.select();}
+      if(ch==='o'){grid[r]=grid[r].substring(0,c)+' '+grid[r].substring(c+1);coins++;updateHud();H.select();sfx('coin',.5);}
       else if(ch==='^'){die();}
       else if(ch==='G'){win();}
     }
   }
   function die(){
     if(p.dead>0||WON)return;
-    lives--;updateHud();H.error();p.dead=0.6;p.vx=0;p.vy=0;
+    lives--;updateHud();H.error();sfx('die',.6);p.dead=0.6;p.vx=0;p.vy=0;
     if(lives<=0){setTimeout(function(){stop();showSelect();},650);}
   }
   function respawn(){if(lives<=0)return;buildLevel(cur);}
   function win(){
-    if(WON)return;WON=true;H.confirm();markCleared(COURSES[cur].id);
+    if(WON)return;WON=true;H.confirm();sfx('clear',.7);stopBgm();markCleared(COURSES[cur].id);
     stop();showClear();
   }
 
@@ -6298,7 +6323,7 @@ console.log('DASHUI Neo Studio ready');
   /* ---- 画面遷移 ---- */
   function setPane(id,on){var e=$(id);if(e)e.classList.toggle('on',!!on);}
   function showSelect(){
-    view='select';stop();
+    view='select';stop();stopBgm();
     setPane('c2story',false);setPane('c2clear',false);$('c2touch').classList.remove('on');
     elTitle.textContent='';elLives.textContent='';elCoins.textContent='';
     var grd=$('c2grid');grd.innerHTML='';
@@ -6313,7 +6338,7 @@ console.log('DASHUI Neo Studio ready');
         '<div class="nm"></div><div class="meta">'+(unlocked?(done?S('cleared'):'★'):S('locked'))+'</div>'+
         (done?'<div class="chk">✓</div>':'');
       liveInto(card.querySelector('.nm'),nm);
-      if(unlocked)card.onclick=function(){H.tap();showStory(i);};
+      if(unlocked)card.onclick=function(){H.tap();sfx('ui',.5);showStory(i);};
       grd.appendChild(card);
     });
     setPane('c2select',true);
@@ -6332,7 +6357,7 @@ console.log('DASHUI Neo Studio ready');
     resize();buildLevel(cur);updateHud();
     var c=COURSES[cur];elTitle.textContent=(c.name[lang()]||c.name.en);
     if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)$('c2touch').classList.add('on');
-    start();
+    playBgm(cur);start();
   }
   function showClear(){
     view='clear';$('c2touch').classList.remove('on');
@@ -6349,8 +6374,8 @@ console.log('DASHUI Neo Studio ready');
       else showSelect();};
     setPane('c2clear',true);
   }
-  function open(){resize();showSelect();ov.classList.add('on');}
-  function close(){stop();ov.classList.remove('on');}
+  function open(){resize();showSelect();var mb=document.getElementById('c2mute');if(mb)mb.textContent=muted?'🔇':'🔊';ov.classList.add('on');}
+  function close(){stop();stopBgm();ov.classList.remove('on');}
 
   /* ---- 入力 ---- */
   function setKey(which,v){
@@ -6385,8 +6410,9 @@ console.log('DASHUI Neo Studio ready');
   bindTouch('c2left','left');bindTouch('c2right','right');bindTouch('c2jump','jump');
 
   /* ---- 配線 ---- */
-  $('c2back').onclick=function(){H.tap();if(view==='play'||view==='story'){stop();showSelect();}else close();};
-  $('c2storyGo').onclick=function(){H.tap();play();};
+  $('c2back').onclick=function(){H.tap();sfx('ui',.5);if(view==='play'||view==='story'){stop();showSelect();}else close();};
+  $('c2storyGo').onclick=function(){H.tap();sfx('ui',.5);play();};
+  $('c2mute').onclick=function(){H.tap();setMuted(!muted);};
   window.addEventListener('resize',function(){if(ov.classList.contains('on'))resize();});
   var cbtn=$('courseBtn');if(cbtn)cbtn.onclick=function(){H.tap();open();};
 
