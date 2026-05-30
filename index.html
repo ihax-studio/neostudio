@@ -6,7 +6,17 @@
 <title>DASHUI — Neo Studio</title>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","ios-haptics":"https://esm.sh/ios-haptics@0.1.4"}}</script>
 <style>
-:root{--font:"SF Pro Display","SF Pro Text",-apple-system,system-ui,sans-serif}
+:root{
+  --font:"SF Pro Display","SF Pro Text",-apple-system,system-ui,sans-serif;
+  /* マリオオデッセイ風サニーアクセント */
+  --accent:#ffc23d; --accent-2:#ff8a4b; --accent-cool:#4fc3ff;
+  /* iOS26 Liquid Glass トークン */
+  --glass-bd:rgba(255,255,255,.38);
+  --radius:20px; --radius-lg:26px;
+  --shadow-soft:0 10px 30px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.20);
+  --shadow-pop:0 24px 60px rgba(0,0,0,.42),0 4px 14px rgba(0,0,0,.28);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0f1e;color:#fff;
   font-family:var(--font),'Hiragino Sans',sans-serif;
@@ -14,11 +24,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0f1e;color:#fff;
 canvas{display:block}
 #world{position:fixed;inset:0;z-index:1}
 #bgWorld{position:fixed;inset:0;z-index:0;filter:blur(24px) brightness(.85);transform:scale(1.1);width:100%;height:100%}
-.glass{background:rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(1.8);
-  -webkit-backdrop-filter:blur(28px) saturate(1.8);border:1px solid rgba(255,255,255,.25);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 32px rgba(0,0,0,.25)}
-.btn{cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),background .25s}
-.btn:hover{transform:scale(1.08)}.btn:active{transform:scale(.95)}
+/* iOS26 Liquid Glass: 透過ガラス + 鏡面エッジ + 柔らかいドロップシャドウ */
+.glass{
+  background:linear-gradient(157deg,rgba(255,255,255,.20),rgba(255,255,255,.06));
+  backdrop-filter:blur(24px) saturate(1.7) brightness(1.08);
+  -webkit-backdrop-filter:blur(24px) saturate(1.7) brightness(1.08);
+  border:1px solid var(--glass-bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 1px rgba(0,0,0,.14),var(--shadow-soft)}
+.btn{cursor:pointer;transition:transform .3s var(--ease-spring),background .25s,box-shadow .25s,filter .25s}
+.btn:hover{transform:scale(1.06);filter:brightness(1.06)}.btn:active{transform:scale(.93)}
 .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
   justify-content:center;transition:opacity .6s}
 .screen.hide{opacity:0;pointer-events:none}
@@ -77,7 +91,9 @@ canvas{display:block}
   content:'✨';position:absolute;top:-4px;right:-4px;font-size:14px;pointer-events:none}
 #title .nav .item{display:flex;flex-direction:column;align-items:center;gap:12px}
 #title .nav .circ{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:32px}
+  justify-content:center;font-size:32px;position:relative}
+/* オデッセイ風: ホバーでサニーアクセントのリングがふわっと点く */
+#title .nav .item:hover .circ{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 3px rgba(255,194,61,.6),var(--shadow-pop)}
 #title .nav .cap{font-size:12px;opacity:.85;letter-spacing:1px}
 #title .nav .circ.dim{opacity:.35;pointer-events:none}
 #title .corner{position:absolute;bottom:26px;width:46px;height:46px;border-radius:50%;
@@ -1157,25 +1173,77 @@ const I18N={
   'sun77.complete':{ja:'10回クリア達成！',en:'10 clears achieved!',zh:'达成10次通关！',ko:'10회 클리어 달성!'}
 };
 // 言語: navigator 優先、保存値 fallback(手動 UI 撤去)
+/* 静的辞書を持つ言語。これ以外(es/fr/de/pt/…)は無料公開APIでライブ翻訳する。 */
+const STATIC_LANGS=LANGS; // ['ja','en','zh','ko']
 let G_LANG=(()=>{
   const n=(navigator.language||'ja').toLowerCase();
-  if(n.startsWith('en'))return 'en';
-  if(n.startsWith('zh'))return 'zh';
-  if(n.startsWith('ko'))return 'ko';
-  if(n.startsWith('ja'))return 'ja';
-  try{const s=localStorage.getItem('dashui.lang');if(s&&LANGS.includes(s))return s}catch(e){}
-  return 'ja';
+  const two=n.slice(0,2);
+  // 保存値(手動選択)があれば最優先
+  try{const s=localStorage.getItem('dashui.lang');if(s)return s}catch(e){}
+  // 静的辞書がある言語はそのまま、それ以外は2文字コードをライブ翻訳ターゲットに
+  if(STATIC_LANGS.includes(two))return two;
+  return two||'ja';
 })();
-function t(key,fb){const e=I18N[key];if(!e)return fb||key;return e[G_LANG]||e.ja||fb||key}
+function t(key,fb){
+  const e=I18N[key];if(!e)return fb||key;
+  if(e[G_LANG])return e[G_LANG];      // 静的辞書ヒット
+  return e.en||e.ja||fb||key;          // 非対応言語は en 基準(後段でライブ翻訳が上書き)
+}
 function applyLang(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k=el.dataset.i18n;const v=t(k);if(v)el.textContent=v;
   });
   document.documentElement.lang=G_LANG;
 }
-function setLang(l){if(!LANGS.includes(l))return;G_LANG=l;
+
+/* ─── ライブ翻訳 (無料公開API: LibreTranslate 互換) ───
+   ・翻訳元は辞書の en 値。結果は localStorage にキャッシュ(再呼び出し無し)。
+   ・全エンドポイント失敗時は en 原文にフォールバック(オフラインでも崩れない)。 */
+const TR_SOURCE='en';
+const TR_ENDPOINTS=[
+  'https://libretranslate.com/translate',
+  'https://translate.disroot.org/translate',
+  'https://lt.vern.cc/translate'
+];
+let _trCache=(()=>{try{return JSON.parse(localStorage.getItem('dashui.tr.cache.v1')||'{}')}catch(e){return{}}})();
+let _trSaveT=0;
+function _trSave(){const now=Date.now();if(now-_trSaveT<800)return;_trSaveT=now;
+  try{localStorage.setItem('dashui.tr.cache.v1',JSON.stringify(_trCache))}catch(e){}}
+async function translateOne(text,target){
+  if(!text||target===TR_SOURCE||STATIC_LANGS.includes(target))return text;
+  const ck=target+''+text;
+  if(_trCache[ck]!=null)return _trCache[ck];
+  for(const url of TR_ENDPOINTS){
+    try{
+      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),4500);
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({q:text,source:TR_SOURCE,target,format:'text'}),signal:ctrl.signal});
+      clearTimeout(tid);
+      if(r.ok){const j=await r.json();const tr=j&&j.translatedText;
+        if(tr){_trCache[ck]=tr;_trSave();return tr}}
+    }catch(e){/* 次のエンドポイントへ */}
+  }
+  return text; // 失敗時は en 原文
+}
+let _trBusy=false;
+async function applyLangLive(){
+  applyLang(); // まず静的(非対応言語は en)で即描画 → 体感ラグ無し
+  if(STATIC_LANGS.includes(G_LANG)||_trBusy)return;
+  _trBusy=true;
+  try{
+    const els=[...document.querySelectorAll('[data-i18n]')];
+    const out={};
+    for(const el of els){
+      const k=el.dataset.i18n;if(out[k]!==undefined)continue;
+      const base=(I18N[k]||{}).en;
+      out[k]=base?await translateOne(base,G_LANG):t(k);
+    }
+    for(const el of els){const k=el.dataset.i18n;if(out[k])el.textContent=out[k];}
+  }catch(e){}finally{_trBusy=false}
+}
+function setLang(l){if(!l)return;G_LANG=l;
   try{localStorage.setItem('dashui.lang',l)}catch(e){}
-  applyLang();
+  if(STATIC_LANGS.includes(l))applyLang();else applyLangLive();
   // update segment active
   document.querySelectorAll('#vmSettings .vm-seg button[data-vm-lang]').forEach(b=>{
     b.classList.toggle('vm-seg-active', b.dataset.vmLang===l);
@@ -4786,7 +4854,7 @@ document.querySelectorAll('#vmSettings .vm-seg button[data-vm-seg]').forEach(b=>
   });
 });
 if(typeof applyQuality==='undefined'){window.applyQuality=()=>{}}
-applyLang();
+applyLangLive(); // 静的(ja/en/zh/ko)は即時、それ以外の言語は無料公開APIでライブ翻訳
 
 /* ─── 汎用カスタムダイヤログ(alert/confirm/prompt 置換) ─── */
 function vmShowDialog(title, body, buttons){
