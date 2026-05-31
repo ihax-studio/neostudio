@@ -4192,11 +4192,11 @@ function enterSunRemix(create){
 /* Phase 3: 土管(オデッセイの土管=2D 面の入口)→ 2D コース選択を開く。
    2D エンジンは CDN 非依存の別スクリプト(window.openCourseSelect)。未ロード時は 3D サンコースへ退避。 */
 function enterCourses(){
-  try{
-    snd('activate',.6);hOk();
-    if(typeof window.openCourseSelect==='function'){window.openCourseSelect();}
-    else enterSun77RemixLocal();
-  }catch(e){enterSun77RemixLocal();}
+  // 土管(オデッセイの土管)→ Neosaurs プレイコースへページ遷移(フルロード=メモリクリーン)。
+  // neosaurs 側はタイトル/作る/地図を抑制し、プレイコースのみ + 戻る土管を表示。
+  try{snd('activate',.6);hOk();}catch(e){}
+  var fade=$('fadeOv');if(fade)fade.classList.add('on');
+  setTimeout(function(){location.href='neosaurs/index.html?from=dashui&play=1&ts='+Date.now();},420);
 }
 function exitNeosaurs(){
   // ページ遷移版なので通常は使わないが、戻ってきた時の処理はページロード時に判定

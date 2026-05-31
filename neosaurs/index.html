@@ -286,7 +286,7 @@
     <style>
     #dashuiBackBtn{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);left:12px;z-index:999999;
       padding:8px 14px;border-radius:88px;
-      background:rgba(20,20,25,.72);backdrop-filter:blur(14px) saturate(1.4);
+      background:linear-gradient(180deg,rgba(70,200,120,.95),rgba(36,140,77,.95));backdrop-filter:blur(14px) saturate(1.4);
       -webkit-backdrop-filter:blur(14px) saturate(1.4);
       color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
       font-size:12px;letter-spacing:.5px;border:1px solid rgba(255,255,255,.18);
@@ -295,7 +295,7 @@
     #dashuiBackBtn.show{display:flex;align-items:center;gap:4px}
     #dashuiBackBtn:active{transform:scale(.94);background:rgba(40,40,50,.9)}
     </style>
-    <div id="dashuiBackBtn" onclick="location.href='../index.html'">← DASHUI</div>
+    <div id="dashuiBackBtn" onclick="location.href='../index.html?fromNeo=1'">🟢 もどる</div>
     <script data-neo-patch="dashui-bridge">
     (function(){
       console.log('[Neosaurs/DASHUI bridge] init');
