@@ -6,7 +6,17 @@
 <title>DASHUI — Neo Studio</title>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","ios-haptics":"https://esm.sh/ios-haptics@0.1.4"}}</script>
 <style>
-:root{--font:"SF Pro Display","SF Pro Text",-apple-system,system-ui,sans-serif}
+:root{
+  --font:"SF Pro Display","SF Pro Text",-apple-system,system-ui,sans-serif;
+  /* マリオオデッセイ風サニーアクセント */
+  --accent:#ffc23d; --accent-2:#ff8a4b; --accent-cool:#4fc3ff;
+  /* iOS26 Liquid Glass トークン */
+  --glass-bd:rgba(255,255,255,.38);
+  --radius:20px; --radius-lg:26px;
+  --shadow-soft:0 10px 30px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.20);
+  --shadow-pop:0 24px 60px rgba(0,0,0,.42),0 4px 14px rgba(0,0,0,.28);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0f1e;color:#fff;
   font-family:var(--font),'Hiragino Sans',sans-serif;
@@ -14,11 +24,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0f1e;color:#fff;
 canvas{display:block}
 #world{position:fixed;inset:0;z-index:1}
 #bgWorld{position:fixed;inset:0;z-index:0;filter:blur(24px) brightness(.85);transform:scale(1.1);width:100%;height:100%}
-.glass{background:rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(1.8);
-  -webkit-backdrop-filter:blur(28px) saturate(1.8);border:1px solid rgba(255,255,255,.25);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 32px rgba(0,0,0,.25)}
-.btn{cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),background .25s}
-.btn:hover{transform:scale(1.08)}.btn:active{transform:scale(.95)}
+/* iOS26 Liquid Glass: 透過ガラス + 鏡面エッジ + 柔らかいドロップシャドウ */
+.glass{
+  background:linear-gradient(157deg,rgba(255,255,255,.20),rgba(255,255,255,.06));
+  backdrop-filter:blur(24px) saturate(1.7) brightness(1.08);
+  -webkit-backdrop-filter:blur(24px) saturate(1.7) brightness(1.08);
+  border:1px solid var(--glass-bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 1px rgba(0,0,0,.14),var(--shadow-soft)}
+.btn{cursor:pointer;transition:transform .3s var(--ease-spring),background .25s,box-shadow .25s,filter .25s}
+.btn:hover{transform:scale(1.06);filter:brightness(1.06)}.btn:active{transform:scale(.93)}
 .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
   justify-content:center;transition:opacity .6s}
 .screen.hide{opacity:0;pointer-events:none}
@@ -77,7 +91,9 @@ canvas{display:block}
   content:'✨';position:absolute;top:-4px;right:-4px;font-size:14px;pointer-events:none}
 #title .nav .item{display:flex;flex-direction:column;align-items:center;gap:12px}
 #title .nav .circ{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:32px}
+  justify-content:center;font-size:32px;position:relative}
+/* オデッセイ風: ホバーでサニーアクセントのリングがふわっと点く */
+#title .nav .item:hover .circ{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 3px rgba(255,194,61,.6),var(--shadow-pop)}
 #title .nav .cap{font-size:12px;opacity:.85;letter-spacing:1px}
 #title .nav .circ.dim{opacity:.35;pointer-events:none}
 #title .corner{position:absolute;bottom:26px;width:46px;height:46px;border-radius:50%;
@@ -916,6 +932,51 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
 #fadeOv{position:fixed;inset:0;z-index:200;background:#000;pointer-events:none;
   opacity:0;transition:opacity .6s cubic-bezier(.4,0,.2,1)}
 #fadeOv.on{opacity:1;pointer-events:auto}
+/* ─── Phase 2: 2D コースフィールド(純Canvas2D) ─── */
+#course2dOv{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;
+  background:radial-gradient(120% 100% at 50% 0%,#13283f,#0a0f1e 72%);color:#fff;overflow:hidden}
+#course2dOv.on{display:flex}
+#c2canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
+.c2-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+  padding:14px 16px;z-index:12;pointer-events:none}
+.c2-top>*{pointer-events:auto}
+.c2-back{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+.c2-title{font:600 16px var(--font);letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.55)}
+.c2-stat{margin-left:auto;display:flex;gap:14px;align-items:center;font:600 15px var(--font);
+  padding:8px 16px;border-radius:88px}
+/* select */
+#c2select{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+  padding:70px 20px 28px;overflow-y:auto;z-index:7}
+#c2select.on{display:flex}
+#c2select h2{font:300 clamp(24px,5.4vw,40px) var(--font);letter-spacing:4px;margin-bottom:4px}
+#c2select .sub{opacity:.6;font-size:12px;letter-spacing:3px;margin-bottom:26px;text-transform:uppercase}
+#c2grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:15px;width:min(720px,93vw)}
+.c2card{border-radius:var(--radius-lg);padding:16px 15px;cursor:pointer;position:relative;min-height:118px;
+  display:flex;flex-direction:column;justify-content:space-between;transition:transform .3s var(--ease-spring)}
+.c2card:hover{transform:translateY(-4px) scale(1.02)}.c2card:active{transform:scale(.97)}
+.c2card.locked{opacity:.45;pointer-events:none;filter:grayscale(.6)}
+.c2card .num{font:700 12px var(--font);color:var(--accent);letter-spacing:2px}
+.c2card .nm{font:600 17px var(--font);margin-top:6px;line-height:1.2}
+.c2card .meta{font-size:11px;opacity:.6;margin-top:auto;letter-spacing:.5px}
+.c2card .chk{position:absolute;top:11px;right:13px;font-size:17px}
+/* story / clear overlays */
+.c2pane{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+  padding:40px 24px;text-align:center;z-index:9;background:rgba(5,8,16,.74);
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.c2pane.on{display:flex}
+#c2story .stxt{font:400 clamp(16px,3.3vw,22px)/1.75 var(--font);max-width:620px;letter-spacing:1px;min-height:3.2em}
+.c2pane .pbtn{margin-top:30px;padding:13px 36px;border-radius:88px;font:600 15px var(--font);cursor:pointer}
+#c2clear .big{font:800 clamp(34px,8.4vw,66px) var(--font);letter-spacing:3px;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+#c2clear .crow{display:flex;gap:14px;margin-top:22px}
+/* touch controls */
+#c2touch{position:absolute;left:0;right:0;bottom:26px;display:none;justify-content:space-between;
+  padding:0 26px;z-index:6;pointer-events:none}
+#c2touch.on{display:flex}
+#c2touch .pad{display:flex;gap:16px;pointer-events:auto}
+#c2touch .tb{width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:26px;user-select:none;-webkit-user-select:none}
+#c2touch .tb:active{transform:scale(.9)}
 </style>
 </head>
 <body>
@@ -935,7 +996,8 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
   <div class="nav">
     <div class="item"><div class="circ glass btn" id="newBtn">▶</div><div class="cap" data-i18n="title.new">新しい物語 / 始める</div></div>
     <div class="item"><div class="circ glass btn" id="loadBtn">↓</div><div class="cap" data-i18n="title.load">読み込む / 受け取る</div></div>
-    <div class="item" id="titleCreateItem"><div class="circ glass btn" id="titleCreateBtn">🛠</div><div class="cap" data-i18n="title.create">作る</div></div>
+    <!-- 「作る」機能は廃止 (Phase 0) -->
+    <div class="item"><div class="circ glass btn" id="courseBtn">🗺️</div><div class="cap" data-i18n="title.course">コース</div></div>
   </div>
   <div class="corner l glass btn" id="setBtn">☰</div>
   <div class="corner r glass btn" id="optBtn">⚙</div>
@@ -1045,14 +1107,37 @@ body.bit8 #roomPill::before{content:"◆ ";color:#ffdd55}
 <div class="modal-ov" id="mOv"><div class="modal glass" id="mBody"></div></div>
 <div class="modal-ov" id="nOv"><div class="modal glass" id="nBody"></div></div>
 
-<div id="creatorOv">
-  <h2 data-i18n="creator.title">🛠 つくるモード</h2>
-  <div class="pal" id="cPal"></div>
-  <div id="cGrid" class="grid"></div>
-  <div class="acts">
-    <button class="nbtn" id="cSave" data-i18n="creator.save">保存</button>
-    <button class="nbtn" id="cTest" data-i18n="creator.test">テストプレイ</button>
-    <button class="nbtn" id="cClose" data-i18n="common.close">閉じる</button>
+<!-- creatorOv: 「作る」機能は廃止 (Phase 0) -->
+
+<!-- ─── Phase 2: 2D コースフィールド ─── -->
+<div id="course2dOv">
+  <canvas id="c2canvas"></canvas>
+  <div class="c2-top">
+    <div class="c2-back glass btn" id="c2back">‹</div>
+    <div class="c2-title" id="c2title"></div>
+    <div class="c2-back glass btn" id="c2mute" style="margin-left:auto">🔊</div>
+    <div class="c2-stat glass"><span id="c2lives">❤️❤️❤️</span><span id="c2coins">✦ 0</span></div>
+  </div>
+  <div id="c2touch">
+    <div class="pad"><div class="tb glass" id="c2left">◀</div><div class="tb glass" id="c2right">▶</div></div>
+    <div class="pad"><div class="tb glass" id="c2jump">⤴</div></div>
+  </div>
+  <div id="c2select">
+    <h2 id="c2selTitle">コース</h2>
+    <div class="sub" id="c2selSub">SELECT A COURSE</div>
+    <div id="c2grid"></div>
+  </div>
+  <div id="c2story" class="c2pane">
+    <div class="stxt" id="c2storyTxt"></div>
+    <div class="pbtn glass btn" id="c2storyGo">▶</div>
+  </div>
+  <div id="c2clear" class="c2pane">
+    <div class="big" id="c2clearBig">CLEAR!</div>
+    <div id="c2clearSub" style="opacity:.8;font-size:14px;letter-spacing:1px"></div>
+    <div class="crow">
+      <div class="pbtn glass btn" id="c2clearRetry"></div>
+      <div class="pbtn glass btn" id="c2clearNext"></div>
+    </div>
   </div>
 </div>
 
@@ -1100,6 +1185,7 @@ const I18N={
   'title.new':{ja:'新しい物語 / 始める',en:'New Story / Start',zh:'新故事 / 开始',ko:'새 이야기 / 시작'},
   'title.load':{ja:'読み込む / 受け取る',en:'Load / Receive',zh:'加载 / 接收',ko:'불러오기 / 받기'},
   'title.create':{ja:'作る',en:'Create',zh:'创建',ko:'만들기'},
+  'title.course':{ja:'コース',en:'Courses',zh:'关卡',ko:'코스'},
   'creator.title':{ja:'🛠 つくるモード',en:'🛠 Create Mode',zh:'🛠 创作模式',ko:'🛠 만들기 모드'},
   'creator.save':{ja:'保存',en:'Save',zh:'保存',ko:'저장'},
   'creator.test':{ja:'テストプレイ',en:'Test Play',zh:'试玩',ko:'테스트 플레이'},
@@ -1166,25 +1252,77 @@ const I18N={
   'sun77.complete':{ja:'10回クリア達成！',en:'10 clears achieved!',zh:'达成10次通关！',ko:'10회 클리어 달성!'}
 };
 // 言語: navigator 優先、保存値 fallback(手動 UI 撤去)
+/* 静的辞書を持つ言語。これ以外(es/fr/de/pt/…)は無料公開APIでライブ翻訳する。 */
+const STATIC_LANGS=LANGS; // ['ja','en','zh','ko']
 let G_LANG=(()=>{
   const n=(navigator.language||'ja').toLowerCase();
-  if(n.startsWith('en'))return 'en';
-  if(n.startsWith('zh'))return 'zh';
-  if(n.startsWith('ko'))return 'ko';
-  if(n.startsWith('ja'))return 'ja';
-  try{const s=localStorage.getItem('dashui.lang');if(s&&LANGS.includes(s))return s}catch(e){}
-  return 'ja';
+  const two=n.slice(0,2);
+  // 保存値(手動選択)があれば最優先
+  try{const s=localStorage.getItem('dashui.lang');if(s)return s}catch(e){}
+  // 静的辞書がある言語はそのまま、それ以外は2文字コードをライブ翻訳ターゲットに
+  if(STATIC_LANGS.includes(two))return two;
+  return two||'ja';
 })();
-function t(key,fb){const e=I18N[key];if(!e)return fb||key;return e[G_LANG]||e.ja||fb||key}
+function t(key,fb){
+  const e=I18N[key];if(!e)return fb||key;
+  if(e[G_LANG])return e[G_LANG];      // 静的辞書ヒット
+  return e.en||e.ja||fb||key;          // 非対応言語は en 基準(後段でライブ翻訳が上書き)
+}
 function applyLang(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k=el.dataset.i18n;const v=t(k);if(v)el.textContent=v;
   });
   document.documentElement.lang=G_LANG;
 }
-function setLang(l){if(!LANGS.includes(l))return;G_LANG=l;
+
+/* ─── ライブ翻訳 (無料公開API: LibreTranslate 互換) ───
+   ・翻訳元は辞書の en 値。結果は localStorage にキャッシュ(再呼び出し無し)。
+   ・全エンドポイント失敗時は en 原文にフォールバック(オフラインでも崩れない)。 */
+const TR_SOURCE='en';
+const TR_ENDPOINTS=[
+  'https://libretranslate.com/translate',
+  'https://translate.disroot.org/translate',
+  'https://lt.vern.cc/translate'
+];
+let _trCache=(()=>{try{return JSON.parse(localStorage.getItem('dashui.tr.cache.v1')||'{}')}catch(e){return{}}})();
+let _trSaveT=0;
+function _trSave(){const now=Date.now();if(now-_trSaveT<800)return;_trSaveT=now;
+  try{localStorage.setItem('dashui.tr.cache.v1',JSON.stringify(_trCache))}catch(e){}}
+async function translateOne(text,target){
+  if(!text||target===TR_SOURCE||STATIC_LANGS.includes(target))return text;
+  const ck=target+''+text;
+  if(_trCache[ck]!=null)return _trCache[ck];
+  for(const url of TR_ENDPOINTS){
+    try{
+      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),4500);
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({q:text,source:TR_SOURCE,target,format:'text'}),signal:ctrl.signal});
+      clearTimeout(tid);
+      if(r.ok){const j=await r.json();const tr=j&&j.translatedText;
+        if(tr){_trCache[ck]=tr;_trSave();return tr}}
+    }catch(e){/* 次のエンドポイントへ */}
+  }
+  return text; // 失敗時は en 原文
+}
+let _trBusy=false;
+async function applyLangLive(){
+  applyLang(); // まず静的(非対応言語は en)で即描画 → 体感ラグ無し
+  if(STATIC_LANGS.includes(G_LANG)||_trBusy)return;
+  _trBusy=true;
+  try{
+    const els=[...document.querySelectorAll('[data-i18n]')];
+    const out={};
+    for(const el of els){
+      const k=el.dataset.i18n;if(out[k]!==undefined)continue;
+      const base=(I18N[k]||{}).en;
+      out[k]=base?await translateOne(base,G_LANG):t(k);
+    }
+    for(const el of els){const k=el.dataset.i18n;if(out[k])el.textContent=out[k];}
+  }catch(e){}finally{_trBusy=false}
+}
+function setLang(l){if(!l)return;G_LANG=l;
   try{localStorage.setItem('dashui.lang',l)}catch(e){}
-  applyLang();
+  if(STATIC_LANGS.includes(l))applyLang();else applyLangLive();
   // update segment active
   document.querySelectorAll('#vmSettings .vm-seg button[data-vm-lang]').forEach(b=>{
     b.classList.toggle('vm-seg-active', b.dataset.vmLang===l);
@@ -1213,10 +1351,22 @@ function snd(name,vol=1,loop=false){
    内部で navigator.vibrate / <input type="checkbox" switch> を自動で使い分けるので
    iOS Safari 17.4+ と Android の両方で鳴る。 */
 
-/* 既存 API（hTap/hOk/hNg）はそのまま使えるよう中身だけ差し替え */
-function hTap(){haptic()}
-function hOk (){haptic.confirm()}
-function hNg (){haptic.error()}
+/* ─── haptic 集約モジュール H (再設計) ───
+   単一窓口に統一: H.tap / H.select / H.confirm / H.error / H.warn / H.heavy
+   ios-haptics が未ロード/失敗でも例外を投げない(try/catch で握り潰す)。
+   既存 API hTap/hOk/hNg は H へ委譲して後方互換を維持。 */
+const H={
+  tap()    {try{haptic()}catch(e){}},
+  select() {try{haptic()}catch(e){}},
+  confirm(){try{haptic.confirm()}catch(e){}},
+  error()  {try{haptic.error()}catch(e){}},
+  warn()   {try{haptic.error()}catch(e){}},
+  heavy()  {try{haptic.confirm()}catch(e){}}
+};
+window.H=H;
+function hTap(){H.tap()}
+function hOk (){H.confirm()}
+function hNg (){H.error()}
 
 /* ─── グローバル配線: touchstart と pointerdown の両方を捕捉。
    iOS Safari では touchstart の方が「より user-gesture」として扱われる傾向がある。
@@ -1455,6 +1605,15 @@ function saveAndExit(){
 /* ---------------- Renderer ---------------- */
 const canvas=$('world');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+/* WebGL コンテキストロスト復旧 (クラッシュ→白画面の致命化を防ぐ)。
+   preventDefault しないとブラウザは永久ロスト扱いにし restored を発火しない。 */
+canvas.addEventListener('webglcontextlost',e=>{
+  e.preventDefault();
+  try{toast(G_LANG==='ja'?'描画を復旧中…':'Restoring graphics…',3000)}catch(_){}
+},false);
+canvas.addEventListener('webglcontextrestored',()=>{
+  try{toast(G_LANG==='ja'?'描画を復旧しました':'Graphics restored',1500)}catch(_){}
+},false);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -3811,7 +3970,7 @@ function tryInteract(){
   if(n.data.kind==='collect'){collectPickup(n);return}
   if(n.data.kind==='portalIn'){enterBuilding();return}
   // 土管も太陽も Neosaurs に完全委譲(worldmap 含む)
-  if(n.data.kind==='pipeWorldmap'){enterSunRemix();return}
+  if(n.data.kind==='pipeWorldmap'){enterCourses();return}
   if(n.data.kind==='sunRemix'){enterSunRemix();return}
   if(n.data.kind==='quiz'){openQuiz();return}
   if(n.data.kind==='exitPortal'){tryExit();return}
@@ -4025,36 +4184,19 @@ const SUN77_PLATFORMS=[
   sunCourseGrp.add(bgSun);
 }
 function enterSunRemix(create){
-  // Neosaurs 起動(ページ遷移)— フリーズ防止:fetch は並行、即遷移
-  console.log('[DASHUI] enterSunRemix → Neosaurs',{create:!!create});
-  const fade=$('fadeOv');fade.classList.add('on');
-  snd('activate',.6);hOk();
-  try{
-    sessionStorage.setItem('dashui.returnFromNeosaurs','1');
-    sessionStorage.setItem('dashui.player.pos',JSON.stringify({x:25,y:heightAt(25,-5)+2,z:-5}));
-  }catch(e){console.warn('[DASHUI] sessionStorage failed:',e)}
-  const qs=['from=dashui','back=1','ts='+Date.now()];
-  if(create)qs.push('create=1');
-  const neoUrl='neosaurs/index.html?'+qs.join('&');
-  // フリーズ防止:pre-check はしない、直接遷移(同一オリジンなのでほぼ失敗しない)
-  setTimeout(()=>{
-    try{
-      console.log('[DASHUI] navigating to',neoUrl);
-      location.href=neoUrl;
-    }catch(e){
-      console.error('[DASHUI] navigation failed',e);
-      fade.classList.remove('on');
-      toast(G_LANG==='ja'?'Neosaurs 起動失敗':'Neosaurs launch failed');
-      hNg();
-    }
-  },500);
-  // 保険タイムアウト:2 秒で遷移しなかったら fade 解除
-  setTimeout(()=>{
-    if(fade.classList.contains('on') && document.visibilityState==='visible'){
-      console.warn('[DASHUI] navigation seems stuck, releasing fade');
-      fade.classList.remove('on');
-    }
-  },2500);
+  // Neosaurs 依存を廃止 (Phase 0)。
+  // 旧実装は neosaurs/index.html(27MB+難読化) へページ遷移しておりクラッシュ要因だった。
+  // 行き先はローカルのサンコースに統一(ページ遷移なし=メモリ破綻/コンテキストロスト回避)。
+  enterSun77RemixLocal();
+}
+/* Phase 3: 土管(オデッセイの土管=2D 面の入口)→ 2D コース選択を開く。
+   2D エンジンは CDN 非依存の別スクリプト(window.openCourseSelect)。未ロード時は 3D サンコースへ退避。 */
+function enterCourses(){
+  // 土管(オデッセイの土管)→ Neosaurs プレイコースへページ遷移(フルロード=メモリクリーン)。
+  // neosaurs 側はタイトル/作る/地図を抑制し、プレイコースのみ + 戻る土管を表示。
+  try{snd('activate',.6);hOk();}catch(e){}
+  var fade=$('fadeOv');if(fade)fade.classList.add('on');
+  setTimeout(function(){location.href='neosaurs/index.html?from=dashui&play=1&ts='+Date.now();},420);
 }
 function exitNeosaurs(){
   // ページ遷移版なので通常は使わないが、戻ってきた時の処理はページロード時に判定
@@ -4684,14 +4826,8 @@ $('newBtn').onclick=()=>{
 function getSlots(){try{return JSON.parse(localStorage.getItem('dashui.slots')||'[]')}catch(e){return[]}}
 function setSlots(a){try{localStorage.setItem('dashui.slots',JSON.stringify(a))}catch(e){}}
 function launchCustomStage(cells){
-  cState.cells={...cells};
-  if($('title').style.display!=='none'){
-    $('title').classList.add('hide');
-    setTimeout(()=>{$('title').style.display='none';$('hud').classList.add('on');enterCustomRoom()},450);
-  }else{
-    $('creatorOv').classList.remove('on');
-    enterCustomRoom();
-  }
+  // 「作る」機能は廃止 (Phase 0)。旧セーブスロットを開いても起動しない。
+  toast(G_LANG==='ja'?'「作る」機能は廃止されました':'The Create feature has been removed');hNg();
 }
 $('loadBtn').onclick=()=>{
   snd('click-001',.5);hTap();
@@ -4806,7 +4942,7 @@ document.querySelectorAll('#vmSettings .vm-seg button[data-vm-seg]').forEach(b=>
   });
 });
 if(typeof applyQuality==='undefined'){window.applyQuality=()=>{}}
-applyLang();
+applyLangLive(); // 静的(ja/en/zh/ko)は即時、それ以外の言語は無料公開APIでライブ翻訳
 
 /* ─── 汎用カスタムダイヤログ(alert/confirm/prompt 置換) ─── */
 function vmShowDialog(title, body, buttons){
@@ -4965,39 +5101,11 @@ function openCreator(){
     gr.appendChild(d);
   }
 }
-$('titleCreateBtn').onclick=()=>{
-  const cleared=(()=>{try{return localStorage.getItem('dashui.cleared')==='1'}catch(e){return false}})();
-  if(!cleared){
-    snd('back',.4);hNg();
-    toast(t('common.locked'));
-    return;
-  }
-  // Neosaurs の作ると全く同じ(Neosaurs 本体のエディタに委譲)
-  enterSunRemix(true);
-};
-// タイトル表示時: クリア済みなら hasCleared、未クリアなら locked
-try{
-  if(localStorage.getItem('dashui.cleared')==='1'){
-    $('titleCreateItem').classList.add('hasCleared');
-  }else{
-    $('titleCreateItem').classList.add('locked');
-  }
-}catch(e){}
-$('cSave').onclick=()=>{
-  const slots=getSlots();
-  const nm=prompt('ステージ名',`ステージ${slots.length+1}`);
-  if(!nm){snd('c1',.4);return}
-  slots.push({name:nm,cells:{...cState.cells},date:Date.now()});
-  setSlots(slots);
-  try{localStorage.setItem('dashui.userRooms',JSON.stringify(cState.cells))}catch(e){}
-  snd('check',.7);toast('「'+nm+'」を保存');
-};
-$('cTest').onclick=()=>{snd('activate',.6);
-  $('creatorOv').classList.remove('on');enterCustomRoom()};
-$('cClose').onclick=()=>{snd('click-003',.4);$('creatorOv').classList.remove('on')};
+/* 「作る」機能は廃止 (Phase 0): titleCreateBtn / creator(保存/テスト/閉じる) 配線を撤去 */
 
 const customRoom=new THREE.Group();customRoom.visible=false;scene.add(customRoom);
 function enterCustomRoom(){
+  return; // 「作る」機能は廃止 (Phase 0)。以下は到達不能(デッドコード)。
   while(customRoom.children.length)customRoom.remove(customRoom.children[0]);
   const size=12,H=4,hs=size/2;
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(size,size),mkMat(0x5a4a3a));
@@ -5545,14 +5653,16 @@ function animate(){
       }
     }
   }
-  dustGeo.attributes.position.needsUpdate=true;
+  if(G.area==='grass')dustGeo.attributes.position.needsUpdate=true;
 
-  // Ocean waves
-  for(let i=0;i<oPos.count;i++){
-    const x=oBase[i*3],z=oBase[i*3+2];
-    oPos.setY(i,Math.sin(tt*.8+x*.1)*.3+Math.cos(tt*1.1+z*.08)*.25);
+  // Ocean waves — 草原表示時のみ頂点更新(屋敷/コース中は world 非表示なので無駄を排除=軽量化)
+  if(G.area==='grass'){
+    for(let i=0;i<oPos.count;i++){
+      const x=oBase[i*3],z=oBase[i*3+2];
+      oPos.setY(i,Math.sin(tt*.8+x*.1)*.3+Math.cos(tt*1.1+z*.08)*.25);
+    }
+    oPos.needsUpdate=true;
   }
-  oPos.needsUpdate=true;
   wfMat.opacity=.55+Math.sin(tt*8)*.15;
 
   collectibles.forEach((c,i)=>{
@@ -5802,7 +5912,7 @@ function animate(){
       else if(d.kind==='imac'&&nearestDist<2.2&&(!G._macCd||now>G._macCd)){openIMacDesktop();G._macCd=now+2500}
       else if(d.kind==='iphone'&&nearestDist<2.0&&(!G._phCd||now>G._phCd)){openIPhone();G._phCd=now+2500}
       else if(d.kind==='portalIn'&&nearestDist<2.5){enterBuilding()}
-      else if(d.kind==='pipeWorldmap'&&nearestDist<1.9&&(!G._pipeCd||now>G._pipeCd)){enterSunRemix();G._pipeCd=now+3000}
+      else if(d.kind==='pipeWorldmap'&&nearestDist<1.9&&(!G._pipeCd||now>G._pipeCd)){enterCourses();G._pipeCd=now+3000}
       else if(d.kind==='sunRemix'&&nearestDist<2.5&&(!G._sunCd||now>G._sunCd)){enterSunRemix();G._sunCd=now+3000}
       else if(d.kind==='door'&&nearestDist<1.8 && (!G._doorCd||now>G._doorCd)){enterRoom(d.to);G._doorCd=now+800}
       else if(d.kind==='exitPortal'&&nearestDist<.9&&G.puzzleSolved){tryExit()}
@@ -5811,7 +5921,7 @@ function animate(){
 
   if(G.puzzleSolved)exitPortal.visible=true;
 
-  updateWeather(dt);
+  if(G.area==='grass')updateWeather(dt);
   tickWeatherCycle(dt);
 
   if(auroraEnd>now){
@@ -5901,6 +6011,421 @@ function startWind(){
 }
 
 console.log('DASHUI Neo Studio ready');
+</script>
+
+<!-- ─── Phase 2: 2D コースエンジン(純Canvas2D / CDN非依存 / 物語付き) ─── -->
+<script>
+(function(){
+  'use strict';
+  var T=44; // タイルサイズ(px)
+
+  /* ---- 言語(モジュールの applyLang が設定する html lang を参照) ---- */
+  function lang(){return (document.documentElement.lang||navigator.language||'ja').slice(0,2);}
+  var STR={
+    ja:{sel:'コースを選ぶ',clear:'クリア！',allclear:'だっしゅつ成功',retry:'もう一度',back:'もどる',
+        next:'次へ',toField:'コースへ',locked:'ロック',deaths:'やられた…',ending:'物語',cleared:'クリア済み'},
+    en:{sel:'SELECT A COURSE',clear:'CLEAR!',allclear:'YOU ESCAPED',retry:'Retry',back:'Back',
+        next:'Next',toField:'Courses',locked:'Locked',deaths:'You fell…',ending:'Story',cleared:'Cleared'}
+  };
+  function S(k){var L=lang();return (STR[L]&&STR[L][k])||STR.en[k]||k;}
+  // 動的テキスト(コース名/物語)を未対応言語へベストエフォートでライブ翻訳
+  function liveInto(el,text){
+    el.textContent=text;
+    try{
+      var L=lang();
+      if(L!=='ja'&&L!=='en'&&typeof window.translateOne==='function'){
+        window.translateOne(text,L).then(function(tr){if(tr)el.textContent=tr;}).catch(function(){});
+      }
+    }catch(e){}
+  }
+
+  /* ---- haptics / se フォールバック ---- */
+  function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+  var H=window.H||{tap:function(){vib(10)},confirm:function(){vib([12,28,12])},error:function(){vib([26,40,26])},select:function(){vib(8)}};
+
+  /* ---- 音(neosaurs 音源を流用): SE + コース別BGM(引き継ぎ3曲) ---- */
+  var SE={jump:'neosaurs/jump.mp3',coin:'neosaurs/get.mp3',die:'neosaurs/explode.mp3',
+    clear:'neosaurs/score.mp3',ui:'neosaurs/tap.mp3'};
+  var BGM=['neosaurs/bgm-2.mp3','neosaurs/classic.mp3','neosaurs/tung.mp3'];
+  var _au={},_bgm=null,muted=false;
+  try{muted=localStorage.getItem('neo.muted')==='1';}catch(e){}
+  function sfx(key,vol){if(muted)return;try{var src=SE[key];if(!src)return;var a=_au[src];
+    if(!a){a=new Audio(src);_au[src]=a;}a.currentTime=0;a.volume=vol==null?.55:vol;a.play().catch(function(){});}catch(e){}}
+  function stopBgm(){try{if(_bgm)_bgm.pause();}catch(e){}}
+  function playBgm(i){try{stopBgm();if(muted)return;var src=BGM[i%BGM.length];var a=_au['b:'+src];
+    if(!a){a=new Audio(src);a.loop=true;_au['b:'+src]=a;}_bgm=a;a.volume=.34;a.currentTime=0;a.play().catch(function(){});}catch(e){}}
+  function setMuted(m){muted=m;var b=document.getElementById('c2mute');if(b)b.textContent=m?'🔇':'🔊';
+    if(m)stopBgm();else if(view==='play')playBgm(cur);
+    try{localStorage.setItem('neo.muted',m?'1':'0')}catch(e){}}
+
+  /* ---- コースデータ(物語付き)。凡例: # 地面 / = 足場 / ^ トゲ / o かけら / S 開始 / G ゴール ---- */
+  var COURSES=[
+    { id:'c1',
+      name:{ja:'目覚めの広間',en:'The Waking Hall'},
+      story:{ja:'…冷たい床で目が覚めた。見知らぬ屋敷。\n光のさす方へ——まずは歩き出そう。',
+              en:'…You wake on a cold floor. An unknown mansion.\nHead toward the light — start walking.'},
+      rows:[
+        "                                            ",
+        "                                            ",
+        "                  ooo                       ",
+        "            ==              ===             ",
+        "       oo        o                     o    ",
+        "     ===       ===        ==        =====   ",
+        "                                            ",
+        " S                                       G  ",
+        "############################################",
+        "############################################"]},
+    { id:'c2',
+      name:{ja:'軋む回廊',en:'The Creaking Corridor'},
+      story:{ja:'床が抜け、棘が並ぶ回廊。\n足元に気をつけて、向こう側へ渡れ。',
+              en:'Floorboards fall away; spikes line the hall.\nMind your step and cross to the far side.'},
+      rows:[
+        "                                                    ",
+        "                                                    ",
+        "                  ooo                               ",
+        "            =========                               ",
+        "       oo                      o o                  ",
+        "     ====       ^^^        ==========               ",
+        "              ######                        G       ",
+        " S         o            o            o    #####     ",
+        "#####    ####   ####   ####   ####   ####  #####    ",
+        "#####    ####   ####   ####   ####   ####  #####    "]},
+    { id:'c3',
+      name:{ja:'月明かりの塔',en:'The Moonlit Tower'},
+      story:{ja:'夜明けは近い。最後は上へ、塔のてっぺんへ。\n一段ずつ、登りきれ。',
+              en:'Dawn is near. The last way is up — to the tower top.\nClimb, one ledge at a time.'},
+      rows:[
+        "                          ===   G       ",
+        "                       o                 ",
+        "                    ====                 ",
+        "                 o                       ",
+        "              ====        ^^^            ",
+        "           o            #####            ",
+        "        ====                             ",
+        "     o                  ====             ",
+        "  ====        ^^         o               ",
+        "         o   ####                        ",
+        "     ====               ====             ",
+        "  o                                      ",
+        " S====                                   ",
+        "#########################################"]}
+  ];
+  var ENDING={ja:'扉の向こうは、朝の光だった。\nあなたは屋敷を抜け出した——物語の、はじまりへ。',
+              en:'Beyond the door lay morning light.\nYou slipped free of the mansion — toward a new beginning.'};
+
+  /* ---- 進捗(localStorage) ---- */
+  function clearedList(){try{return JSON.parse(localStorage.getItem('neo.courses.cleared')||'[]')}catch(e){return[]}}
+  function markCleared(id){var a=clearedList();if(a.indexOf(id)<0){a.push(id);try{localStorage.setItem('neo.courses.cleared',JSON.stringify(a))}catch(e){}}}
+  function isUnlocked(i){return i===0||clearedList().indexOf(COURSES[i-1].id)>=0;}
+
+  /* ---- DOM ---- */
+  var $=function(id){return document.getElementById(id)};
+  var ov=$('course2dOv'),cv=$('c2canvas'),ctx=cv.getContext('2d');
+  var elTitle=$('c2title'),elLives=$('c2lives'),elCoins=$('c2coins');
+
+  /* ---- 状態 ---- */
+  var running=false,rafId=0,lastTs=0,acc=0,view='select';
+  var grid=[],cols=0,levRows=0,levW=0,levH=0;
+  var cur=-1, lives=3, coins=0, tnow=0;
+  var cam={x:0,y:0};
+  var input={left:false,right:false,jump:false,jumpEdge:false};
+  var p={x:0,y:0,w:30,h:38,vx:0,vy:0,onGround:false,coyote:0,jbuf:0,dead:0,face:'🦊'};
+  var WON=false;
+
+  // プレイヤー絵文字(キャラ作成の保存値があれば反映)
+  try{var ps=JSON.parse(localStorage.getItem('dashui.player')||'null');if(ps&&ps.emoji)p.face=ps.emoji;}catch(e){}
+
+  /* ---- レベル構築 ---- */
+  function buildLevel(i){
+    var c=COURSES[i];grid=c.rows.slice();levRows=grid.length;
+    cols=0;for(var r=0;r<grid.length;r++)cols=Math.max(cols,grid[r].length);
+    // 行を同じ長さに右パディング
+    for(var r2=0;r2<grid.length;r2++){while(grid[r2].length<cols)grid[r2]+=' ';}
+    levW=cols*T;levH=levRows*T;
+    coins=0;WON=false;
+    // 開始位置
+    for(var rr=0;rr<levRows;rr++)for(var cc=0;cc<cols;cc++){
+      if(grid[rr][cc]==='S'){p.x=cc*T+7;p.y=rr*T+T-p.h;}
+    }
+    p.vx=0;p.vy=0;p.onGround=false;p.dead=0;
+    cam.x=0;cam.y=0;
+  }
+  function tileAt(col,row){if(row<0||row>=levRows||col<0||col>=cols)return ' ';return grid[row][col];}
+  function solid(col,row){var ch=tileAt(col,row);return ch==='#'||ch==='=';}
+
+  /* ---- 物理(固定ステップ) ---- */
+  var GRAV=2600, MOVE=2200, MAXVX=320, JUMP=760, FRICT=0.0009;
+  function step(dt){
+    if(WON)return;
+    if(p.dead>0){p.dead-=dt;if(p.dead<=0)respawn();return;}
+    // 入力 → 水平
+    var dir=(input.right?1:0)-(input.left?1:0);
+    if(dir!==0){p.vx+=dir*MOVE*dt;}
+    else{p.vx*=Math.pow(FRICT,dt);} // 指数摩擦
+    if(p.vx>MAXVX)p.vx=MAXVX;if(p.vx<-MAXVX)p.vx=-MAXVX;
+    if(Math.abs(p.vx)<3&&dir===0)p.vx=0;
+    // ジャンプ(コヨーテ + バッファ)
+    p.coyote=p.onGround?0.09:Math.max(0,p.coyote-dt);
+    if(input.jumpEdge){p.jbuf=0.12;input.jumpEdge=false;}
+    else p.jbuf=Math.max(0,p.jbuf-dt);
+    if(p.jbuf>0&&p.coyote>0){p.vy=-JUMP;p.onGround=false;p.coyote=0;p.jbuf=0;H.tap();sfx('jump',.5);}
+    // 重力
+    p.vy+=GRAV*dt;if(p.vy>1400)p.vy=1400;
+    // 水平移動 + 衝突
+    p.x+=p.vx*dt;collide('x');
+    // 垂直移動 + 衝突
+    p.onGround=false;p.y+=p.vy*dt;collide('y');
+    // 落下死
+    if(p.y>levH+220)die();
+    // ハザード/かけら/ゴール
+    scanTiles();
+    // 場外(左右)制限
+    if(p.x<0){p.x=0;p.vx=0;}
+    if(p.x>levW-p.w){p.x=levW-p.w;p.vx=0;}
+  }
+  function collide(axis){
+    var c0=Math.floor(p.x/T),c1=Math.floor((p.x+p.w)/T);
+    var r0=Math.floor(p.y/T),r1=Math.floor((p.y+p.h)/T);
+    for(var r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++){
+      if(!solid(c,r))continue;
+      var tx=c*T,ty=r*T;
+      // AABB 重なり確認
+      if(p.x<tx+T&&p.x+p.w>tx&&p.y<ty+T&&p.y+p.h>ty){
+        if(axis==='x'){
+          if(p.vx>0)p.x=tx-p.w;else if(p.vx<0)p.x=tx+T;
+          p.vx=0;
+        }else{
+          if(p.vy>0){p.y=ty-p.h;p.onGround=true;}
+          else if(p.vy<0)p.y=ty+T;
+          p.vy=0;
+        }
+      }
+    }
+  }
+  function scanTiles(){
+    var c0=Math.floor(p.x/T),c1=Math.floor((p.x+p.w)/T);
+    var r0=Math.floor(p.y/T),r1=Math.floor((p.y+p.h)/T);
+    for(var r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++){
+      var ch=tileAt(c,r);if(ch===' '||ch==='#'||ch==='=')continue;
+      var tx=c*T,ty=r*T;
+      if(!(p.x<tx+T&&p.x+p.w>tx&&p.y<ty+T&&p.y+p.h>ty))continue;
+      if(ch==='o'){grid[r]=grid[r].substring(0,c)+' '+grid[r].substring(c+1);coins++;updateHud();H.select();sfx('coin',.5);}
+      else if(ch==='^'){die();}
+      else if(ch==='G'){win();}
+    }
+  }
+  function die(){
+    if(p.dead>0||WON)return;
+    lives--;updateHud();H.error();sfx('die',.6);p.dead=0.6;p.vx=0;p.vy=0;
+    if(lives<=0){setTimeout(function(){stop();showSelect();},650);}
+  }
+  function respawn(){if(lives<=0)return;buildLevel(cur);}
+  function win(){
+    if(WON)return;WON=true;H.confirm();sfx('clear',.7);stopBgm();markCleared(COURSES[cur].id);
+    stop();showClear();
+  }
+
+  /* ---- 描画 ---- */
+  var DPR=1;
+  function resize(){
+    DPR=Math.min(window.devicePixelRatio||1,2);
+    var w=ov.clientWidth||window.innerWidth,h=ov.clientHeight||window.innerHeight;
+    cv.width=Math.floor(w*DPR);cv.height=Math.floor(h*DPR);
+    cv.style.width=w+'px';cv.style.height=h+'px';
+  }
+  function viewW(){return cv.width/DPR;}
+  function viewH(){return cv.height/DPR;}
+  function updateCam(){
+    var vw=viewW(),vh=viewH();
+    var tx=p.x+p.w/2-vw*0.42, ty=p.y+p.h/2-vh*0.58;
+    cam.x+=(tx-cam.x)*0.16;cam.y+=(ty-cam.y)*0.16;
+    cam.x=Math.max(0,Math.min(cam.x,Math.max(0,levW-vw)));
+    cam.y=Math.max(-80,Math.min(cam.y,Math.max(0,levH-vh)+40));
+  }
+  function rr(x,y,w,h,rad){ctx.beginPath();var r=Math.min(rad,w/2,h/2);
+    ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  function render(){
+    var vw=viewW(),vh=viewH();
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    // 背景グラデ
+    var g=ctx.createLinearGradient(0,0,0,vh);
+    g.addColorStop(0,'#16314f');g.addColorStop(.55,'#0e1b30');g.addColorStop(1,'#080d18');
+    ctx.fillStyle=g;ctx.fillRect(0,0,vw,vh);
+    // パララックスの柱(屋敷の影)
+    ctx.fillStyle='rgba(120,150,200,.06)';
+    for(var k=0;k<6;k++){var px=((k*260)-cam.x*0.3)%(vw+260);if(px<-180)px+=vw+260;
+      ctx.fillRect(px,vh*0.2,90,vh);}
+    // 月
+    ctx.save();ctx.globalAlpha=.5;ctx.fillStyle='#cfe0ff';
+    ctx.beginPath();ctx.arc(vw*0.8,vh*0.22,40,0,7);ctx.fill();ctx.restore();
+    updateCam();
+    ctx.save();ctx.translate(-cam.x,-cam.y);
+    // 可視タイル範囲のみ描画(軽量)
+    var c0=Math.max(0,Math.floor(cam.x/T)-1),c1=Math.min(cols-1,Math.floor((cam.x+vw)/T)+1);
+    var r0=Math.max(0,Math.floor(cam.y/T)-1),r1=Math.min(levRows-1,Math.floor((cam.y+vh)/T)+1);
+    for(var r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++){
+      var ch=grid[r][c];if(ch===' '||ch==='S')continue;
+      var x=c*T,y=r*T;
+      if(ch==='#'||ch==='='){
+        ctx.fillStyle=(ch==='#')?'#3a3550':'#4a4568';
+        rr(x,y,T,T-(ch==='='?T*0.4:0),8);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.10)';rr(x+2,y+2,T-4,6,3);ctx.fill();
+      }else if(ch==='o'){
+        var bob=Math.sin(tnow*4+c)*3;
+        ctx.fillStyle='#ffc23d';ctx.beginPath();ctx.arc(x+T/2,y+T/2+bob,9,0,7);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.7)';ctx.beginPath();ctx.arc(x+T/2-3,y+T/2-3+bob,3,0,7);ctx.fill();
+      }else if(ch==='^'){
+        ctx.fillStyle='#ff5a6e';
+        ctx.beginPath();ctx.moveTo(x+4,y+T);ctx.lineTo(x+T/2,y+T*0.3);ctx.lineTo(x+T-4,y+T);ctx.closePath();ctx.fill();
+      }else if(ch==='G'){
+        var gl=0.5+Math.sin(tnow*3)*0.5;
+        ctx.save();ctx.shadowColor='rgba(255,194,61,'+(0.5+gl*0.5)+')';ctx.shadowBlur=24;
+        ctx.fillStyle='#ffd76a';rr(x+6,y-6,T-12,T+6,10);ctx.fill();
+        ctx.restore();
+        ctx.fillStyle='#7a5a10';ctx.font='22px serif';ctx.textAlign='center';ctx.fillText('⛩',x+T/2,y+T/2+8);
+      }
+    }
+    // プレイヤー
+    var blink=(p.dead>0&&Math.floor(tnow*16)%2===0);
+    if(!blink){
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=10;ctx.shadowOffsetY=4;
+      ctx.fillStyle='#ffffff';rr(p.x,p.y,p.w,p.h,9);ctx.fill();ctx.restore();
+      ctx.fillStyle='#10243b';ctx.font=(p.h-8)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(p.face,p.x+p.w/2,p.y+p.h/2+1);
+      ctx.textBaseline='alphabetic';
+    }
+    ctx.restore();
+  }
+
+  /* ---- ループ ---- */
+  function loop(ts){
+    if(!running)return;
+    if(!lastTs)lastTs=ts;
+    var dt=(ts-lastTs)/1000;lastTs=ts;if(dt>0.1)dt=0.1;
+    tnow+=dt;acc+=dt;
+    var STEP=1/120,guard=0;
+    while(acc>=STEP&&guard++<12){step(STEP);acc-=STEP;}
+    render();
+    rafId=requestAnimationFrame(loop);
+  }
+  function start(){if(running)return;running=true;lastTs=0;acc=0;rafId=requestAnimationFrame(loop);}
+  function stop(){running=false;if(rafId)cancelAnimationFrame(rafId);rafId=0;}
+
+  /* ---- HUD ---- */
+  function updateHud(){
+    var hearts='';for(var i=0;i<Math.max(0,lives);i++)hearts+='❤️';
+    elLives.textContent=hearts||'💀';
+    elCoins.textContent='✦ '+coins;
+  }
+
+  /* ---- 画面遷移 ---- */
+  function setPane(id,on){var e=$(id);if(e)e.classList.toggle('on',!!on);}
+  function showSelect(){
+    view='select';stop();stopBgm();
+    setPane('c2story',false);setPane('c2clear',false);$('c2touch').classList.remove('on');
+    elTitle.textContent='';elLives.textContent='';elCoins.textContent='';
+    var grd=$('c2grid');grd.innerHTML='';
+    liveInto($('c2selTitle'),(STR[lang()]||STR.en).sel?S('sel'):'コース');
+    $('c2selSub').textContent='SELECT A COURSE';
+    COURSES.forEach(function(c,i){
+      var unlocked=isUnlocked(i),done=clearedList().indexOf(c.id)>=0;
+      var card=document.createElement('div');
+      card.className='c2card glass'+(unlocked?'':' locked');
+      var nm=c.name[lang()]||c.name.en||c.name.ja;
+      card.innerHTML='<div class="num">'+(i+1).toString().padStart(2,'0')+'</div>'+
+        '<div class="nm"></div><div class="meta">'+(unlocked?(done?S('cleared'):'★'):S('locked'))+'</div>'+
+        (done?'<div class="chk">✓</div>':'');
+      liveInto(card.querySelector('.nm'),nm);
+      if(unlocked)card.onclick=function(){H.tap();sfx('ui',.5);showStory(i);};
+      grd.appendChild(card);
+    });
+    setPane('c2select',true);
+  }
+  function showStory(i){
+    cur=i;lives=3;view='story';
+    setPane('c2select',false);setPane('c2clear',false);
+    var c=COURSES[i];
+    elTitle.textContent=(c.name[lang()]||c.name.en);
+    liveInto($('c2storyTxt'),(c.story[lang()]||c.story.en).replace(/\n/g,'  '));
+    $('c2storyGo').textContent='▶';
+    setPane('c2story',true);
+  }
+  function play(){
+    view='play';setPane('c2story',false);setPane('c2clear',false);setPane('c2select',false);
+    resize();buildLevel(cur);updateHud();
+    var c=COURSES[cur];elTitle.textContent=(c.name[lang()]||c.name.en);
+    if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)$('c2touch').classList.add('on');
+    playBgm(cur);start();
+  }
+  function showClear(){
+    view='clear';$('c2touch').classList.remove('on');
+    var last=(cur>=COURSES.length-1);
+    $('c2clearBig').textContent=last?S('allclear'):S('clear');
+    if(last)liveInto($('c2clearSub'),(ENDING[lang()]||ENDING.en).replace(/\n/g,'  '));
+    else $('c2clearSub').textContent='✦ '+coins;
+    $('c2clearRetry').textContent='↻ '+S('retry');
+    $('c2clearNext').textContent=last?('⌂ '+S('back')):(S('next')+' ›');
+    $('c2clearRetry').onclick=function(){H.tap();setPane('c2clear',false);play();};
+    $('c2clearNext').onclick=function(){H.tap();setPane('c2clear',false);
+      if(last)showSelect();
+      else if(isUnlocked(cur+1))showStory(cur+1);
+      else showSelect();};
+    setPane('c2clear',true);
+  }
+  function open(){resize();showSelect();var mb=document.getElementById('c2mute');if(mb)mb.textContent=muted?'🔇':'🔊';ov.classList.add('on');}
+  function close(){stop();stopBgm();ov.classList.remove('on');}
+
+  /* ---- 入力 ---- */
+  function setKey(which,v){
+    if(which==='left')input.left=v;
+    else if(which==='right')input.right=v;
+    else if(which==='jump'){if(v&&!input.jump)input.jumpEdge=true;input.jump=v;}
+  }
+  window.addEventListener('keydown',function(e){
+    if(!ov.classList.contains('on'))return;
+    var k=e.key.toLowerCase();
+    if(k==='arrowleft'||k==='a')setKey('left',true);
+    else if(k==='arrowright'||k==='d')setKey('right',true);
+    else if(k==='arrowup'||k==='w'||k===' ')setKey('jump',true);
+    else if(k==='escape'){if(view==='play'){stop();showSelect();}else if(view==='select')close();}
+    else return;
+    e.preventDefault();
+  });
+  window.addEventListener('keyup',function(e){
+    if(!ov.classList.contains('on'))return;
+    var k=e.key.toLowerCase();
+    if(k==='arrowleft'||k==='a')setKey('left',false);
+    else if(k==='arrowright'||k==='d')setKey('right',false);
+    else if(k==='arrowup'||k==='w'||k===' ')setKey('jump',false);
+  });
+  function bindTouch(id,which){
+    var e=$(id);if(!e)return;
+    var down=function(ev){ev.preventDefault();setKey(which,true);};
+    var up=function(ev){ev.preventDefault();setKey(which,false);};
+    e.addEventListener('pointerdown',down);e.addEventListener('pointerup',up);
+    e.addEventListener('pointercancel',up);e.addEventListener('pointerleave',up);
+  }
+  bindTouch('c2left','left');bindTouch('c2right','right');bindTouch('c2jump','jump');
+
+  /* ---- 配線 ---- */
+  $('c2back').onclick=function(){H.tap();sfx('ui',.5);if(view==='play'||view==='story'){stop();showSelect();}else close();};
+  $('c2storyGo').onclick=function(){H.tap();sfx('ui',.5);play();};
+  $('c2mute').onclick=function(){H.tap();setMuted(!muted);};
+  window.addEventListener('resize',function(){if(ov.classList.contains('on'))resize();});
+  var cbtn=$('courseBtn');if(cbtn)cbtn.onclick=function(){H.tap();open();};
+
+  /* ---- 公開 + デバッグフック ---- */
+  window.openCourseSelect=open;
+  window.Course2D={open:open,close:close,courses:COURSES};
+  window.__c2={ // 自動テスト用
+    open:open, play:play, showStory:showStory,
+    setKey:setKey, step:function(dt){step(dt||1/120);}, render:render, build:buildLevel,
+    setCur:function(i){cur=i;}, lives:function(){return lives;},
+    state:function(){return {x:p.x,y:p.y,vx:p.vx,vy:p.vy,onGround:p.onGround,coins:coins,won:WON,view:view,lives:lives,cur:cur,levW:levW,levH:levH};}
+  };
+})();
 </script>
 </body>
 </html>

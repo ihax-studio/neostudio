@@ -286,7 +286,7 @@
     <style>
     #dashuiBackBtn{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);left:12px;z-index:999999;
       padding:8px 14px;border-radius:88px;
-      background:rgba(20,20,25,.72);backdrop-filter:blur(14px) saturate(1.4);
+      background:linear-gradient(180deg,rgba(70,200,120,.95),rgba(36,140,77,.95));backdrop-filter:blur(14px) saturate(1.4);
       -webkit-backdrop-filter:blur(14px) saturate(1.4);
       color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
       font-size:12px;letter-spacing:.5px;border:1px solid rgba(255,255,255,.18);
@@ -294,8 +294,10 @@
       cursor:pointer;display:none;transition:transform .2s, background .2s;user-select:none;-webkit-user-select:none}
     #dashuiBackBtn.show{display:flex;align-items:center;gap:4px}
     #dashuiBackBtn:active{transform:scale(.94);background:rgba(40,40,50,.9)}
+    /* dashui 連携: プレイコースのみ。「作る」を常時非表示 */
+    #welcomeCreateBtn{display:none !important}
     </style>
-    <div id="dashuiBackBtn" onclick="location.href='../index.html'">← DASHUI</div>
+    <div id="dashuiBackBtn" onclick="location.href='../index.html?fromNeo=1'">🟢 もどる</div>
     <script data-neo-patch="dashui-bridge">
     (function(){
       console.log('[Neosaurs/DASHUI bridge] init');
@@ -305,6 +307,18 @@
         if(fromDashui){
           var btn=document.getElementById('dashuiBackBtn');
           if(btn){btn.classList.add('show');console.log('[bridge] back button visible')}
+        }
+        // 土管(play=1)から来たらタイトルを飛ばして「プレイコースのみ」へ自動スタート
+        window.__neoAutoStart=(fromDashui && u.searchParams.get('play')==='1')?'armed':'off';
+        if(fromDashui && u.searchParams.get('play')==='1'){
+          var _pt=0, _pi=setInterval(function(){
+            // welcome 画面が実際に出る(welcome-hidden が外れる)まで待ってからクリック
+            var sb=document.getElementById('welcomeStartButton');
+            var ws=document.getElementById('welcomeScreen');
+            var ready=sb && ws && !ws.classList.contains('welcome-hidden') && getComputedStyle(ws).display!=='none';
+            if(ready){ try{sb.click()}catch(e){} window.__neoAutoStart='clicked'; console.log('[bridge] auto-start play course'); clearInterval(_pi); }
+            if(++_pt>200){ window.__neoAutoStart='timeout'; clearInterval(_pi); }
+          },120);
         }
         // DASHUI 経由ならいつでも Create ボタンを unlock 状態に保つ
         if(fromDashui){
