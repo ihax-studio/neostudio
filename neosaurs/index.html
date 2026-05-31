@@ -309,12 +309,16 @@
           if(btn){btn.classList.add('show');console.log('[bridge] back button visible')}
         }
         // 土管(play=1)から来たらタイトルを飛ばして「プレイコースのみ」へ自動スタート
+        window.__neoAutoStart=(fromDashui && u.searchParams.get('play')==='1')?'armed':'off';
         if(fromDashui && u.searchParams.get('play')==='1'){
           var _pt=0, _pi=setInterval(function(){
+            // welcome 画面が実際に出る(welcome-hidden が外れる)まで待ってからクリック
             var sb=document.getElementById('welcomeStartButton');
-            if(sb){ try{sb.click()}catch(e){} console.log('[bridge] auto-start play course'); clearInterval(_pi); }
-            if(++_pt>140) clearInterval(_pi);
-          },150);
+            var ws=document.getElementById('welcomeScreen');
+            var ready=sb && ws && !ws.classList.contains('welcome-hidden') && getComputedStyle(ws).display!=='none';
+            if(ready){ try{sb.click()}catch(e){} window.__neoAutoStart='clicked'; console.log('[bridge] auto-start play course'); clearInterval(_pi); }
+            if(++_pt>200){ window.__neoAutoStart='timeout'; clearInterval(_pi); }
+          },120);
         }
         // DASHUI 経由ならいつでも Create ボタンを unlock 状態に保つ
         if(fromDashui){
