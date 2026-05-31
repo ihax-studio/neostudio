@@ -294,6 +294,8 @@
       cursor:pointer;display:none;transition:transform .2s, background .2s;user-select:none;-webkit-user-select:none}
     #dashuiBackBtn.show{display:flex;align-items:center;gap:4px}
     #dashuiBackBtn:active{transform:scale(.94);background:rgba(40,40,50,.9)}
+    /* dashui 連携: プレイコースのみ。「作る」を常時非表示 */
+    #welcomeCreateBtn{display:none !important}
     </style>
     <div id="dashuiBackBtn" onclick="location.href='../index.html?fromNeo=1'">🟢 もどる</div>
     <script data-neo-patch="dashui-bridge">
@@ -305,6 +307,14 @@
         if(fromDashui){
           var btn=document.getElementById('dashuiBackBtn');
           if(btn){btn.classList.add('show');console.log('[bridge] back button visible')}
+        }
+        // 土管(play=1)から来たらタイトルを飛ばして「プレイコースのみ」へ自動スタート
+        if(fromDashui && u.searchParams.get('play')==='1'){
+          var _pt=0, _pi=setInterval(function(){
+            var sb=document.getElementById('welcomeStartButton');
+            if(sb){ try{sb.click()}catch(e){} console.log('[bridge] auto-start play course'); clearInterval(_pi); }
+            if(++_pt>140) clearInterval(_pi);
+          },150);
         }
         // DASHUI 経由ならいつでも Create ボタンを unlock 状態に保つ
         if(fromDashui){
