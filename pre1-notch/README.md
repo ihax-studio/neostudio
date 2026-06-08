@@ -12,3 +12,9 @@
    - ページ番号だけの検索では翻訳APIを呼ばない
 2. TTS の送り/言語切替 Delay を 0.1s 短縮
    - `advDelay`: Max=400→300ms / 通常=500→400ms
+
+## 2026-06-08 追記
+3. カードの文字の上をタップしても再生ボタン等が出るよう修正（style.css）
+   - `.card` の文字要素（word/pron/mean/ex-en/ex-ja）を `pointer-events:none` に
+   - 字の上タップが iOS の pointercancel（テキスト選択扱い）で無効化されるのを防ぎ、
+     タップが常に `#card` 本体に当たって controls がトグルされる
