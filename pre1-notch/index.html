@@ -90,15 +90,13 @@
   </div>
 </main>
 
-<!-- 速度スライダ（島タップで島の所に重なって出る）＋ 隣に 例文読み上げ on/off の「ex」円 -->
+<!-- 速度スライダ（島タップで島の所に重なって出る）。ex/Pre1 ボタンは廃止＝速度バーのみ。Pre1(準一級ON/OFF)は検索のPre1ボールへ移設 -->
 <div class="rate-panel" id="ratePanel">
-  <button class="pre1-toggle" id="pre1Toggle" aria-label="準一級 on/off（OFFでDay1-5は準一級をパス。Pre1タブは常に表示）" title="準一級 ON/OFF">Pre1</button>
   <div class="rate-wrap" id="rateWrap">
     <div class="rate-tick"></div>
     <div class="rate-label" id="rateLabel">英1.0 和1.1</div>
     <input type="range" class="rate" id="rate" min="0.8" max="1.6" step="0.1" value="1">
   </div>
-  <button class="ex-toggle" id="exToggle" aria-label="例文読み上げ on/off" title="例文読み上げ">ex</button>
 </div>
 
 <!-- FABs -->
@@ -1967,6 +1965,7 @@ const HSEL='button,[role="button"],.ctrl,.fab,.ex-toggle,.sp-clear,.sp-cat,.sp-b
 const BACKDROP='#searchOv,#stackOverlay,#savedOverlay';   // 背景自体＝「何もないとこ」だが“閉じるボタン”として機能 → 直タップでhaptic
 ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,e=>{
   const t=e.target;
+  if(t.closest && t.closest('#card') && !t.closest('.ctrl')) return;   // カード本体の haptic は「トグル成立時」に出す＝鳴ったら必ず再生ボタンが出る（重複防止）。.ctrlボタンは従来通り
   if((t.closest&&t.closest(HSEL)) || (t.matches&&t.matches(BACKDROP))) fire('selection');
 },{capture:true,passive:true}));
 ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ _userActed=true; },{capture:true,passive:true}));
@@ -2055,6 +2054,7 @@ function renderWheel(){
   wheel.innerHTML=_pad+list.map((w,i)=>{
     return '<div class="row" data-i="'+i+'">'
       +'<span class="en">'+esc(w.w)+'</span>'
+      +'<span class="rb">'+(w.pre1?'<i class="rb-pre1" aria-label="準1"></i>':'')+(w.p?'<span class="rb-pos" style="background:'+posC(w.p)+'">'+esc(w.p)+'</span>':'')+'</span>'   // 品詞/準1：選択枠の単語横にだけ滑らかに出る（CSS .row[data-d="0"] .rb）。準1は背景画像＝表示行だけデコード（全行imgのメモリ膨張回避）
       +'<span class="ja">'+esc(w.j)+'</span></div>';
   }).join('')+_pad;
   wheel._rows=wheel.querySelectorAll('.row');   // cache (avoid re-query per scroll)
@@ -2175,8 +2175,14 @@ function revealControls(open){
 }
 function bumpControls(){ if(!COARSE && cardEl.classList.contains('controls-open')){ clearTimeout(ctrlHideT); ctrlHideT=setTimeout(()=>revealControls(false),HIDE_MS); } }
 
-/* 島(---/---) タップ → 速度スライダだけ */
-islandEl.onclick=()=>{ const willOpen=!ratePanel.classList.contains('open'); if(willOpen) snd('hud_open.wav'); revealRate(willOpen); };   // 開く時 hud_open
+/* 島(---/---) タップ → 速度スライダ。上→下スワイプ → 検索（タップで速度は維持） */
+let _islY=null,_islSwiped=false;
+islandEl.addEventListener('pointerdown',e=>{ _islY=e.clientY; _islSwiped=false; });
+islandEl.addEventListener('pointermove',e=>{ if(_islY!=null && e.clientY-_islY>22){ _islSwiped=true; } });
+islandEl.addEventListener('pointerup',e=>{ if(_islSwiped){ _islY=null; if(ratePanel.classList.contains('open')) revealRate(false); openSearch(); } });
+islandEl.addEventListener('pointercancel',()=>{ _islY=null; });
+islandEl.onclick=()=>{ if(_islSwiped){ _islSwiped=false; return; }   // スワイプ時は速度を開かない
+  const willOpen=!ratePanel.classList.contains('open'); if(willOpen) snd('hud_open.wav'); revealRate(willOpen); };   // 開く時 hud_open
 /* 島の Pre1/品詞バッジ：触れると scale 1.1 のポップ＋音（おまけ） */
 ['#islPre1','#islPos'].forEach(sel=>{ const b=$(sel); if(!b) return;
   b.addEventListener('pointerdown',()=>{ if(!b.classList.contains('on')) return;
@@ -2189,8 +2195,9 @@ islandEl.onclick=()=>{ const willOpen=!ratePanel.classList.contains('open'); if(
 let _cardTapAt=0, _cdX=0, _cdY=0, _cardMoved=false;
 function toggleControls(){
   const now=performance.now();
-  if(now-_cardTapAt<420) return;                     // pointerup と 合成click の重複を1回に
+  if(now-_cardTapAt<420) return;                     // pointerup と 合成click の重複を1回に（ここで弾かれた時は haptic も鳴らさない）
   _cardTapAt=now;
+  fire('selection');                                 // haptic はトグルが実際に成立した時だけ＝「鳴ったら必ず再生ボタンが出る」
   revealControls(!cardEl.classList.contains('controls-open'));
 }
 cardEl.addEventListener('pointerdown',e=>{ _cdX=e.clientX; _cdY=e.clientY; _cardMoved=false; });
@@ -2272,23 +2279,23 @@ rateEl.addEventListener('input',()=>{ rate=parseFloat(rateEl.value); rateLabel.t
 
 /* 例文読み上げ on/off（スライダ隣の ex 円）。on=例文(英)も読み上げ */
 ['pointerup','pointercancel'].forEach(e=>rateEl.addEventListener(e,()=>snd('sfx_release.wav')));   // 指を離すと release 音
-let exOn=false; try{ exOn=localStorage.getItem('vocabx.ex')==='1'; }catch{}
+let exOn=false; try{ exOn=localStorage.getItem('vocabx.ex')==='1'; }catch{}   // ex(例文読み上げ)トグルUIは廃止。保存値があれば踏襲のみ
 const exToggle=$('#exToggle');
-exToggle.classList.toggle('on',exOn);
-exToggle.onclick=()=>{ exOn=!exOn; exToggle.classList.toggle('on',exOn);
-  try{ localStorage.setItem('vocabx.ex', exOn?'1':'0'); }catch{}
-  snd(exOn?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf');   // on=Far-Near / off=PreNearby
-  realTap(); haptic.confirm?.(); bumpRate(); };
+if(exToggle){ exToggle.classList.toggle('on',exOn);
+  exToggle.onclick=()=>{ exOn=!exOn; exToggle.classList.toggle('on',exOn);
+    try{ localStorage.setItem('vocabx.ex', exOn?'1':'0'); }catch{}
+    snd(exOn?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf');
+    realTap(); haptic.confirm?.(); bumpRate(); }; }
 
-/* 準一級トグル（スライダ左）：ON=Day1-5に準一級も含める(既定) / OFF(白地に黒)=Day1-5で準一級をパス。Pre1タブは常に表示 */
-const pre1Toggle=$('#pre1Toggle');
-function renderPre1Toggle(){ pre1Toggle.classList.toggle('off',!pre1On); pre1Toggle.setAttribute('aria-pressed', pre1On?'true':'false'); }
+/* 準一級 ON/OFF：UI は検索の Pre1 ボールへ移設。ON=Day1-5に準一級も含める(既定) / OFF=Day1-5で準一級をパス。Pre1タブは常に表示 */
+const pre1Toggle=$('#pre1Toggle');   // 廃止済み（null）。renderPre1Toggle は null セーフ
+function renderPre1Toggle(){ if(pre1Toggle){ pre1Toggle.classList.toggle('off',!pre1On); pre1Toggle.setAttribute('aria-pressed', pre1On?'true':'false'); } fillSearchBalls?.(); }
 renderPre1Toggle();
 function setPre1On(on){ if(on===pre1On){ bumpRate(); return; } pre1On=on; try{ localStorage.setItem('vocabx.pre1on', on?'1':'0'); }catch{}
   const l=curList(); if(idx>=l.length) idx=Math.max(0,l.length-1);   // フィルタでlistが縮んだら現在位置をクランプ
   renderPre1Toggle(); renderWheel(); show(); bumpRate(); }
-pre1Toggle.onclick=()=>{ const next=!pre1On; snd(next?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf');   // on化=Far-Near / off化=PreNearby
-  realTap(); haptic.confirm?.(); setPre1On(next); };
+if(pre1Toggle){ pre1Toggle.onclick=()=>{ const next=!pre1On; snd(next?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf');
+  realTap(); haptic.confirm?.(); setPre1On(next); }; }   // 旧トグルは廃止（null セーフ）。準一級ON/OFFは検索のPre1ボールから
 
 /* keyboard */
 document.addEventListener('keydown',e=>{
@@ -2363,7 +2370,7 @@ let spItems=[], spSel=0;
 const trCache=new Map();   // q -> {ja,en} | null（free CDN翻訳のキャッシュ）
 let trTimer=0;
 let ballsT=0, pre1Filter=false;
-function fillSearchBalls(){ const pre1=$('#spBallPre1'); if(pre1) pre1.classList.toggle('on',pre1Filter); }
+function fillSearchBalls(){ const pre1=$('#spBallPre1'); if(pre1) pre1.classList.toggle('on',pre1On); }   // on=準一級を含める(pre1On)
 function revealBalls(open,autoClose){ const was=spEl.classList.contains('balls'); spEl.classList.toggle('balls',open); if(open&&!was) snd('FMR1Arrow-Build-B389.caf'); else if(!open&&was) snd('FMR1Arrow-Scatter-B389.caf'); clearTimeout(ballsT); if(open&&autoClose) ballsT=setTimeout(()=>revealBalls(false),2000); }   // 出る=Build音 / 消える=Scatter音
 function openSearch(){ fillSearchBalls(); searchOv.classList.add('show'); fire('confirm'); snd('spatial-entry.wav');
   setTimeout(()=>{ if(searchOv.classList.contains('show') && !searchInput.value) revealBalls(true,false); },300);   // globe/Pre1 の丸は開いて 0.3s 後に出す（scale-inが落ち着いてから）
@@ -2383,7 +2390,7 @@ function spDoClear(){ const t=performance.now(); if(t-_spClearLock<260) return; 
 searchClear.addEventListener('pointerup',e=>{ e.preventDefault(); e.stopPropagation(); spDoClear(); });   // mobile/タッチ
 searchClear.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); spDoClear(); });        // PCクリックでも確実に動く
 { const mag=document.querySelector('.sp-bar .mag'); if(mag){ mag.style.cursor='pointer'; mag.addEventListener('pointerdown',e=>{ e.preventDefault(); fillSearchBalls(); revealBalls(true,true); }); } }   // 虫眼鏡で丸を再表示（2sで閉じる）
-{ const pb=$('#spBallPre1'); if(pb) pb.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); pre1Filter=!pre1Filter; pb.classList.toggle('on',pre1Filter); try{ pb.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:240,easing:'ease-out'}); }catch{} snd(pre1Filter?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf'); fire('confirm'); clearTimeout(ballsT); renderSearch(searchInput.value); }); }   // on=Far-Near / off=PreNearby   // Pre1フィルタ トグル（on=Pre1以外を灰色に）
+{ const pb=$('#spBallPre1'); if(pb) pb.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); const next=!pre1On; setPre1On(next); pb.classList.toggle('on',pre1On); try{ pb.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:240,easing:'ease-out'}); }catch{} snd(next?'FMRSSI-Far-Near.caf':'FMR1PreNearby-B389.caf'); fire('confirm'); clearTimeout(ballsT); }); }   // 検索のPre1ボール＝準一級ON/OFF（旧ex反対のPre1トグルの役割）。on=Day1-5に準1も含める
 let _spPrevLen=0;
 searchInput.addEventListener('input',()=>{ const v=searchInput.value;
   if(v==='' && _spPrevLen>0) snd('keyboard_press_clear.caf');   // 字を全消しした時（×でも手動でも）→ クリア音と共に消える
@@ -2452,7 +2459,7 @@ function rowWord(w,i){
     : '<div class="ic">'+esc(init)+'</div>';
   const pos = w.p ? '<span class="sp-pos" style="background:'+posC(w.p)+'">'+esc(w.p)+'</span>' : '';   // 品詞バッジ（iOS7色）
   const pgC = w.pg ? '<span style="opacity:.5;font-weight:600;margin-left:6px">· p'+esc(w.pg)+'</span>' : '';   // ページ番号を結果にも表示
-  return '<div class="sp-row'+(w.pre1?' p1':'')+(pre1Filter&&!w.pre1?' dim':'')+'" data-i="'+i+'">'
+  return '<div class="sp-row'+(w.pre1?' p1':'')+'" data-i="'+i+'">'
     +ic
     +'<div class="sp-rt"><div class="sp-en">'+esc(w.w)+'</div><div class="sp-ja">'+pos+esc(w.j)+pgC+'</div></div>'
     +(w.pre1?'<span class="sp-tag">準1</span>':'')+'</div>';

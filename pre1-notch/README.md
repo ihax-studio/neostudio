@@ -18,3 +18,12 @@
    - `.card` の文字要素（word/pron/mean/ex-en/ex-ja）を `pointer-events:none` に
    - 字の上タップが iOS の pointercancel（テキスト選択扱い）で無効化されるのを防ぎ、
      タップが常に `#card` 本体に当たって controls がトグルされる
+
+## 2026-06-09 バッチ①〜⑥
+1. 再生ボタンのhaptic重複修正：カード本体のグローバルhaptic抑止＋toggleControls成立時に一本化（鳴ったら必ず出る）
+2. Dynamic Island を上→下スワイプで検索を開く（タップは速度のまま）／検索オーバーレイを上(9vh)へ
+3. PWA全画面：overflow制限削除＋min-height:100dvh＋html背景敷き（ステータスバー下まで全面）
+   ※ iOS27 Safari(WWDC26)にviewport/safe-area新APIは無く、標準CSSで実装
+4. 品詞/準1バッジを島からホイール選択枠(data-d=0)の単語横へ移設（準1は背景画像＝表示行だけデコード）
+5. 速度パネルの ex ボタン廃止（速度バーのみ）
+6. 速度パネルの Pre1 トグル廃止 → 検索の Pre1 ボールが準一級ON/OFF(Day1-5に準1含む/外す)を担当

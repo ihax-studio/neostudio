@@ -11,7 +11,9 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  html,body{height:100%;overflow-x:hidden}
+  /* PWA 全画面：overflow 制限を外す＝ステータスバー下まで全面表示（iOSの上部白帯バグ回避）。背景は html にも敷く */
+  html,body{height:100%}
+  html{background:linear-gradient(180deg,#fff,var(--bg-2,#f3f3f7))}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
     color:var(--tx);
@@ -19,7 +21,7 @@
       radial-gradient(900px 600px at 12% -8%, #ff2d6e10, transparent 60%),
       radial-gradient(900px 700px at 105% 110%, #a035bf12, transparent 60%),
       linear-gradient(180deg,#fff,var(--bg-2));
-    min-height:100vh;-webkit-font-smoothing:antialiased;
+    min-height:100dvh;-webkit-font-smoothing:antialiased;
   }
   input,textarea{font-size:16px} /* prevent iOS zoom */
 
@@ -72,6 +74,7 @@
   .isl-badge.on{ transform:scale(1); opacity:1; margin-left:0; }
   .isl-pre1{ background:radial-gradient(100% 90% at 70% 80%,#4aa3ff,#ff44c7 55%,#ff5287,#ff7800); font-size:16px; }
   .isl-pos{ font-size:13px; }   /* 品詞ごとの背景色は JS で設定 */
+  .island-row .isl-badge{ display:none; }   /* 品詞/準1 バッジは「ホイール選択枠の単語の横」へ移設（下の .wheel .row .rb） */
 
   /* ───────── APP COLUMN ───────── */
   .app{
@@ -221,6 +224,13 @@
   }
   .wheel .row .en{font-size:22px; letter-spacing:-.005em; flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .wheel .row .ja{font-size:12px; opacity:.6; flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* 品詞/準1 バッジ：選択枠(data-d=0)の単語の横にだけ 滑らかに出る（他の行は畳む） */
+  .wheel .row .rb{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+    max-width:0; opacity:0; transform:translateX(-6px) scale(.6); overflow:hidden;
+    transition:max-width .4s var(--spring), opacity .35s var(--ease), transform .45s var(--spring); }
+  .wheel .row[data-d="0"] .rb{ max-width:150px; opacity:1; transform:none; }
+  .wheel .row .rb-pos{ font:600 10px/1 -apple-system,system-ui; color:#fff; padding:3px 7px; border-radius:8px; white-space:nowrap; }
+  .wheel .row .rb-pre1{ width:18px; height:18px; flex:0 0 auto; background:url(icon-pre1.png) center/contain no-repeat; }
   .wheel .row[data-d="-3"]{transform:rotateX(36deg) translateZ(-30px); opacity:.16}
   .wheel .row[data-d="-2"]{transform:rotateX(22deg) translateZ(-14px); opacity:.4}
   .wheel .row[data-d="-1"]{transform:rotateX(10deg) translateZ(-4px); opacity:.75}
@@ -308,7 +318,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 15vh 22px 0;
+  padding: 9vh 22px 0;
   background: transparent;
   visibility: hidden;
   transition: visibility .5s;
